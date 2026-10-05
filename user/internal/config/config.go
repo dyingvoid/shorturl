@@ -7,6 +7,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// HMAC-SHA256
 type Config struct {
 	JWTSecret       string        `envconfig:"JWT_SECRET" required:"true"`
 	AccessTokenTTL  time.Duration `envconfig:"ACCESS_TOKEN_TTL" default:"15m"`
