@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	"github.com/dyingvoid/shorturl/user/internal/domain"
@@ -12,7 +13,7 @@ func (h *Handler) Register(ctx context.Context, req *userv1.RegisterRequest) (*u
 		ctx, domain.NewUserCredentials(req.Email, req.Password),
 	)
 	if err != nil {
-		return nil, mapDomainError(err)
+		return nil, mapDomainError(fmt.Errorf("failed to register: %w", err))
 	}
 
 	return &userv1.RegisterResponse{

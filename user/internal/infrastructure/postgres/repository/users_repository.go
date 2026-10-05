@@ -28,7 +28,7 @@ func (r *UsersRepository) CreateUser(
 
 	query := `
 	WITH new_user AS (
-		INSERT INTO users (email, password_hash)
+		INSERT INTO users.users (email, password_hash)
 		VALUES (@email, @password_hash)
 		RETURNING *
 	), new_subscription AS (
