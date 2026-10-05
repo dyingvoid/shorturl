@@ -11,6 +11,12 @@ type PasswordHasher interface {
 	Compare(hash, password string) error
 }
 
+type TokenService interface {
+	Issue(user domain.User) (domain.TokenPair, error)
+	ParseAccess(token string) (domain.TokenClaims, error)
+	ParseRefresh(token string) (domain.TokenClaims, error)
+}
+
 type UsersRepository interface {
 	CreateUser(
 		ctx context.Context,
@@ -21,15 +27,18 @@ type UsersRepository interface {
 
 type UsersService struct {
 	passwordHasher  PasswordHasher
+	tokenService    TokenService
 	usersRepository UsersRepository
 }
 
 func NewUsersService(
 	passwordHasher PasswordHasher,
+	tokenService TokenService,
 	usersRepository UsersRepository,
 ) *UsersService {
 	return &UsersService{
 		passwordHasher:  passwordHasher,
+		tokenService:    tokenService,
 		usersRepository: usersRepository,
 	}
 }

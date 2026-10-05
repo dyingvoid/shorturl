@@ -10,6 +10,7 @@ import (
 	"github.com/dyingvoid/shorturl/user/internal/config"
 	"github.com/dyingvoid/shorturl/user/internal/handler"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/hashing"
+	"github.com/dyingvoid/shorturl/user/internal/infrastructure/jwt"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/logger"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
@@ -31,8 +32,9 @@ func main() {
 	defer pool.Close()
 
 	hasher := hashing.NewPasswordHasher()
+	tokenService := jwt.NewTokenService(jwt.NewMust())
 	usersRepository := users_postgres_repository.NewUsersRepository(pool)
-	usersService := service.NewUsersService(hasher, usersRepository)
+	usersService := service.NewUsersService(hasher, tokenService, usersRepository)
 
 	serverCfg := config.NewMust()
 	grpcServer := grpc.NewServer()

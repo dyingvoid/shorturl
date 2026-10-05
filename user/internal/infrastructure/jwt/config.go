@@ -1,13 +1,16 @@
-package config
+package jwt
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	UserServicePort int `envconfig:"USER_SERVICE_PORT" default:"50051"`
+	Secret          string        `envconfig:"JWT_SECRET" required:"true"`
+	AccessTokenTTL  time.Duration `envconfig:"ACCESS_TOKEN_TTL" default:"15m"`
+	RefreshTokenTTL time.Duration `envconfig:"REFRESH_TOKEN_TTL" default:"168h"`
 }
 
 func New() (Config, error) {
