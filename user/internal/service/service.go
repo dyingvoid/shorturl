@@ -23,6 +23,10 @@ type UsersRepository interface {
 		email domain.Email,
 		passwordHash string,
 	) (domain.User, error)
+	GetUserByEmail(
+		ctx context.Context,
+		email domain.Email,
+	) (domain.User, string, error)
 }
 
 type UsersService struct {

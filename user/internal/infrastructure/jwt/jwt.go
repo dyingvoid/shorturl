@@ -66,11 +66,9 @@ func (s *TokenService) sign(
 	claims := Claims{
 		Email:     user.Email,
 		TokenType: tokenType,
-		RegisteredClaims: jwtlib.RegisteredClaims{
-			Subject:   user.ID.String(),
-			IssuedAt:  jwtlib.NewNumericDate(now),
-			ExpiresAt: jwtlib.NewNumericDate(now.Add(ttl)),
-		},
+		Subject:   user.ID.String(),
+		IssuedAt:  jwtlib.NewNumericDate(now),
+		ExpiresAt: jwtlib.NewNumericDate(now.Add(ttl)),
 	}
 
 	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, claims)

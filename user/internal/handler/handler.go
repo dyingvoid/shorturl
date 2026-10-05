@@ -17,16 +17,16 @@ type UsersService interface {
 		ctx context.Context,
 		credentials domain.UserCredentials,
 	) (domain.User, error)
+	Login(
+		ctx context.Context,
+		credentials domain.UserCredentials,
+	) (domain.TokenPair, error)
 }
 
 func NewHandler(usersService UsersService) *Handler {
 	return &Handler{
 		usersService: usersService,
 	}
-}
-
-func (h *Handler) Login(_ context.Context, _ *userv1.LoginRequest) (*userv1.LoginResponse, error) {
-	panic("not implemented") // TODO: Implement
 }
 
 func (h *Handler) Logout(_ context.Context, _ *userv1.LogoutRequest) (*userv1.LogoutResponse, error) {
