@@ -1,0 +1,9 @@
+BEGIN;
+
+DROP TABLE IF EXISTS users.sessions;
+DROP TABLE IF EXISTS users.subscriptions;
+DROP TABLE IF EXISTS users.users;
+
+DROP SCHEMA IF EXISTS users;
+
+COMMIT;

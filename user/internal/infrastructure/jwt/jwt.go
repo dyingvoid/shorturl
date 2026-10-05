@@ -13,6 +13,7 @@ import (
 type Claims struct {
 	Email     string           `json:"email"`
 	TokenType domain.TokenType `json:"token_type"`
+	SessionID string           `json:"sid"`
 	jwtlib.RegisteredClaims
 }
 
@@ -30,15 +31,22 @@ func NewTokenService(config Config) *TokenService {
 	}
 }
 
-func (s *TokenService) Issue(user domain.User) (domain.TokenPair, error) {
+func (s *TokenService) Issue(
+	user domain.User,
+	session domain.Session,
+) (domain.TokenPair, error) {
 	now := time.Now()
 
-	accessToken, err := s.sign(user, now, s.accessTokenTTL, domain.TokenTypeAccess)
+	accessToken, err := s.sign(
+		user, session.ID, now, s.accessTokenTTL, domain.TokenTypeAccess,
+	)
 	if err != nil {
 		return domain.TokenPair{}, fmt.Errorf("sign access token: %w", err)
 	}
 
-	refreshToken, err := s.sign(user, now, s.refreshTokenTTL, domain.TokenTypeRefresh)
+	refreshToken, err := s.sign(
+		user, session.ID, now, s.refreshTokenTTL, domain.TokenTypeRefresh,
+	)
 	if err != nil {
 		return domain.TokenPair{}, fmt.Errorf("sign refresh token: %w", err)
 	}
@@ -47,6 +55,10 @@ func (s *TokenService) Issue(user domain.User) (domain.TokenPair, error) {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func (s *TokenService) RefreshTTL() time.Duration {
+	return s.refreshTokenTTL
 }
 
 func (s *TokenService) ParseAccess(token string) (domain.TokenClaims, error) {
@@ -59,6 +71,7 @@ func (s *TokenService) ParseRefresh(token string) (domain.TokenClaims, error) {
 
 func (s *TokenService) sign(
 	user domain.User,
+	sessionID uuid.UUID,
 	now time.Time,
 	ttl time.Duration,
 	tokenType domain.TokenType,
@@ -66,6 +79,7 @@ func (s *TokenService) sign(
 	claims := Claims{
 		Email:     user.Email,
 		TokenType: tokenType,
+		SessionID: sessionID.String(),
 		Subject:   user.ID.String(),
 		IssuedAt:  jwtlib.NewNumericDate(now),
 		ExpiresAt: jwtlib.NewNumericDate(now.Add(ttl)),
@@ -119,8 +133,16 @@ func (s *TokenService) parse(
 		)
 	}
 
+	sessionID, err := uuid.Parse(claims.SessionID)
+	if err != nil {
+		return domain.TokenClaims{}, fmt.Errorf(
+			"parse session id: %v: %w", err, domain_errors.ErrUnauthenticated,
+		)
+	}
+
 	return domain.TokenClaims{
 		UserID:    userID,
+		SessionID: sessionID,
 		Email:     claims.Email,
 		Type:      claims.TokenType,
 		IssuedAt:  claims.IssuedAt.Time,

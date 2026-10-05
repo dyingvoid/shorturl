@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/dyingvoid/shorturl/user/internal/domain"
+	"github.com/google/uuid"
 )
 
 type PasswordHasher interface {
@@ -12,9 +14,10 @@ type PasswordHasher interface {
 }
 
 type TokenService interface {
-	Issue(user domain.User) (domain.TokenPair, error)
+	Issue(user domain.User, session domain.Session) (domain.TokenPair, error)
 	ParseAccess(token string) (domain.TokenClaims, error)
 	ParseRefresh(token string) (domain.TokenClaims, error)
+	RefreshTTL() time.Duration
 }
 
 type UsersRepository interface {
@@ -29,20 +32,31 @@ type UsersRepository interface {
 	) (domain.User, string, error)
 }
 
+type SessionsRepository interface {
+	CreateSession(
+		ctx context.Context,
+		userID uuid.UUID,
+		expiresAt time.Time,
+	) (domain.Session, error)
+}
+
 type UsersService struct {
-	passwordHasher  PasswordHasher
-	tokenService    TokenService
-	usersRepository UsersRepository
+	passwordHasher     PasswordHasher
+	tokenService       TokenService
+	usersRepository    UsersRepository
+	sessionsRepository SessionsRepository
 }
 
 func NewUsersService(
 	passwordHasher PasswordHasher,
 	tokenService TokenService,
 	usersRepository UsersRepository,
+	sessionsRepository SessionsRepository,
 ) *UsersService {
 	return &UsersService{
-		passwordHasher:  passwordHasher,
-		tokenService:    tokenService,
-		usersRepository: usersRepository,
+		passwordHasher:     passwordHasher,
+		tokenService:       tokenService,
+		usersRepository:    usersRepository,
+		sessionsRepository: sessionsRepository,
 	}
 }

@@ -20,6 +20,7 @@ type TokenPair struct {
 
 type TokenClaims struct {
 	UserID    uuid.UUID
+	SessionID uuid.UUID
 	Email     string
 	Type      TokenType
 	IssuedAt  time.Time

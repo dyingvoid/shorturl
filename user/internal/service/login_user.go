@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dyingvoid/shorturl/user/internal/domain"
 	domain_errors "github.com/dyingvoid/shorturl/user/internal/domain/errors"
@@ -29,7 +30,16 @@ func (s *UsersService) Login(
 		)
 	}
 
-	tokens, err := s.tokenService.Issue(user)
+	session, err := s.sessionsRepository.CreateSession(
+		ctx,
+		user.ID,
+		time.Now().Add(s.tokenService.RefreshTTL()),
+	)
+	if err != nil {
+		return domain.TokenPair{}, fmt.Errorf("create session: %w", err)
+	}
+
+	tokens, err := s.tokenService.Issue(user, session)
 	if err != nil {
 		return domain.TokenPair{}, fmt.Errorf("issue tokens: %w", err)
 	}

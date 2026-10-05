@@ -34,7 +34,8 @@ func main() {
 	hasher := hashing.NewPasswordHasher()
 	tokenService := jwt.NewTokenService(jwt.NewMust())
 	usersRepository := users_postgres_repository.NewUsersRepository(pool)
-	usersService := service.NewUsersService(hasher, tokenService, usersRepository)
+	sessionsRepository := users_postgres_repository.NewSessionsRepository(pool)
+	usersService := service.NewUsersService(hasher, tokenService, usersRepository, sessionsRepository)
 
 	serverCfg := config.NewMust()
 	grpcServer := grpc.NewServer()
