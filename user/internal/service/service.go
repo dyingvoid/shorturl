@@ -44,11 +44,18 @@ type SessionsRepository interface {
 	) error
 }
 
+type Cache interface {
+	Set(ctx context.Context, key string, value any, ttl time.Duration) error
+	Get(ctx context.Context, key string) ([]byte, error)
+	Delete(ctx context.Context, key string) error
+}
+
 type UsersService struct {
 	passwordHasher     PasswordHasher
 	tokenService       TokenService
 	usersRepository    UsersRepository
 	sessionsRepository SessionsRepository
+	cache              Cache
 }
 
 func NewUsersService(
@@ -56,11 +63,13 @@ func NewUsersService(
 	tokenService TokenService,
 	usersRepository UsersRepository,
 	sessionsRepository SessionsRepository,
+	cache Cache,
 ) *UsersService {
 	return &UsersService{
 		passwordHasher:     passwordHasher,
 		tokenService:       tokenService,
 		usersRepository:    usersRepository,
 		sessionsRepository: sessionsRepository,
+		cache:              cache,
 	}
 }

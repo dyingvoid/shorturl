@@ -7,9 +7,12 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-func Connect(ctx context.Context, config Config) (*goredis.Client, error) {
+func Connect(ctx context.Context, config Config) (*Cache, error) {
 	client := goredis.NewClient(&goredis.Options{
-		Addr: fmt.Sprintf("%s:%d", config.Host, config.Port),
+		Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
+		DialTimeout:  config.Timeout,
+		ReadTimeout:  config.Timeout,
+		WriteTimeout: config.Timeout,
 	})
 
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -18,5 +21,5 @@ func Connect(ctx context.Context, config Config) (*goredis.Client, error) {
 		return nil, fmt.Errorf("ping redis: %w", err)
 	}
 
-	return client, nil
+	return NewCache(client), nil
 }

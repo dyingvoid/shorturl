@@ -14,6 +14,7 @@ import (
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/logger"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
+	"github.com/dyingvoid/shorturl/user/internal/infrastructure/redis"
 	"github.com/dyingvoid/shorturl/user/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -31,11 +32,21 @@ func main() {
 	}
 	defer pool.Close()
 
+	redisCache, err := redis.Connect(ctx, redis.NewMust())
+	if err != nil {
+		log.Fatalf("connect redis: %v", err)
+	}
+	defer redisCache.Close()
+
 	hasher := hashing.NewPasswordHasher()
 	tokenService := jwt.NewTokenService(jwt.NewMust())
 	usersRepository := users_postgres_repository.NewUsersRepository(pool)
 	sessionsRepository := users_postgres_repository.NewSessionsRepository(pool)
-	usersService := service.NewUsersService(hasher, tokenService, usersRepository, sessionsRepository)
+	usersService := service.NewUsersService(
+		hasher, tokenService, 
+		usersRepository, sessionsRepository, 
+		redisCache,
+	)
 
 	serverCfg := config.NewMust()
 	grpcServer := grpc.NewServer()
