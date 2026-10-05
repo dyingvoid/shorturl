@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/dyingvoid/shorturl/user/internal/postgres/errors"
+	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/errors"
 )
 
 type Pool interface {
