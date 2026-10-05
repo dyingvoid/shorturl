@@ -32,7 +32,7 @@ func (r *UsersRepository) CreateUser(
 		VALUES (@email, @password_hash)
 		RETURNING *
 	), new_subscription AS (
-		INSERT INTO subscriptions (user_id, plan, links_limit)
+		INSERT INTO users.subscriptions (user_id, plan, links_limit)
 		SELECT id, 'basic', 1000 FROM new_user
 	)
 	SELECT * FROM new_user;`

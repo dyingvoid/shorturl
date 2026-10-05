@@ -10,14 +10,19 @@ import (
 	"github.com/dyingvoid/shorturl/user/internal/config"
 	"github.com/dyingvoid/shorturl/user/internal/handler"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/hashing"
+	"github.com/dyingvoid/shorturl/user/internal/infrastructure/logger"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
 	"github.com/dyingvoid/shorturl/user/internal/service"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
 	ctx := context.Background()
+
+	appLogger := logger.Init(logger.NewMust())
+	appLogger.Info("application started")
 
 	pool, err := postgres.Connect(ctx, postgres.NewMust())
 	if err != nil {
@@ -29,11 +34,14 @@ func main() {
 	usersRepository := users_postgres_repository.NewUsersRepository(pool)
 	usersService := service.NewUsersService(hasher, usersRepository)
 
+	serverCfg := config.NewMust()
 	grpcServer := grpc.NewServer()
 	userv1.RegisterUserServiceServer(grpcServer, handler.NewHandler(usersService))
 
+	reflection.Register(grpcServer)
+	appLogger.Warn("server starting", "port", serverCfg.UserServicePort)
 	lis, err := net.Listen(
-		"tcp", fmt.Sprintf(":%d", config.NewMust().UserServicePort),
+		"tcp", fmt.Sprintf(":%d", serverCfg.UserServicePort),
 	)
 	if err != nil {
 		log.Fatalf("listen: %v", err)

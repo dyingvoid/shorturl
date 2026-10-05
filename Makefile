@@ -69,7 +69,7 @@ migrate-action:
 		"$(action)"
 
 user-run:
-	cd ${PROJECT_ROOT} && \
+	@cd ${PROJECT_ROOT} && \
 	go work sync && \
 	cd ${USER_PROJECT_ROOT} && \
 	go fmt ./... && \
