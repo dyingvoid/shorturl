@@ -38,6 +38,10 @@ type SessionsRepository interface {
 		userID uuid.UUID,
 		expiresAt time.Time,
 	) (domain.Session, error)
+	RevokeSession(
+		ctx context.Context,
+		id uuid.UUID,
+	) error
 }
 
 type UsersService struct {
