@@ -7,7 +7,7 @@ import (
 	"github.com/dyingvoid/shorturl/user/internal/domain"
 )
 
-func (s *UsersService) RegisterUser(
+func (s *UsersService) Register(
 	ctx context.Context,
 	credentials domain.UserCredentials,
 ) (domain.User, error) {
@@ -15,5 +15,17 @@ func (s *UsersService) RegisterUser(
 		return domain.User{}, fmt.Errorf("invalid credentials: %w", err)
 	}
 
-	return domain.User{}, nil
+	passHash, err := s.passwordHasher.Hash(credentials.Password.String())
+	if err != nil {
+		return domain.User{}, fmt.Errorf("invalid credentials: %w", err)
+	}
+
+	user, err := s.usersRepository.CreateUser(
+		ctx, credentials.Email, passHash,
+	)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("failed to add user: %w", err)
+	}
+
+	return user, nil
 }
