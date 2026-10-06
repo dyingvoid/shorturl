@@ -22,9 +22,11 @@ import (
 
 func main() {
 	ctx := context.Background()
+	appCfg := config.NewMust()
 
 	appLogger := logger.Init(logger.NewMust())
-	appLogger.Info("application started")
+	appLogger.Warn("application started")
+	appLogger.Info("time zone", "timezone", appCfg.TimeZone.String())
 
 	pool, err := postgres.Connect(ctx, postgres.NewMust())
 	if err != nil {
@@ -48,14 +50,13 @@ func main() {
 		redisCache, appLogger,
 	)
 
-	serverCfg := config.NewMust()
 	grpcServer := grpc.NewServer()
 	userv1.RegisterUserServiceServer(grpcServer, handler.NewHandler(usersService))
 
 	reflection.Register(grpcServer)
-	appLogger.Warn("server starting", "port", serverCfg.UserServicePort)
+	appLogger.Warn("server starting", "port", appCfg.UserServicePort)
 	lis, err := net.Listen(
-		"tcp", fmt.Sprintf(":%d", serverCfg.UserServicePort),
+		"tcp", fmt.Sprintf(":%d", appCfg.UserServicePort),
 	)
 	if err != nil {
 		log.Fatalf("listen: %v", err)
