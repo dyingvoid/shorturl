@@ -41,6 +41,10 @@ type SessionsRepository interface {
 		userID uuid.UUID,
 		expiresAt time.Time,
 	) (domain.Session, error)
+	GetActiveSession(
+		ctx context.Context,
+		id uuid.UUID,
+	) (domain.Session, error)
 	RevokeSession(
 		ctx context.Context,
 		id uuid.UUID,
@@ -80,6 +84,8 @@ func NewUsersService(
 	}
 }
 
+const sessionKeyPrefix = "session:"
+
 func (s *UsersService) sessionKey(sessionID uuid.UUID) string {
-	return fmt.Sprintf("session:%s", sessionID)
+	return fmt.Sprintf("%s%s", sessionKeyPrefix, sessionID)
 }

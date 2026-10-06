@@ -2,6 +2,7 @@ package users_postgres_repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -46,6 +47,42 @@ func (r *SessionsRepository) CreateSession(
 
 	sessionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[sessionModel])
 	if err != nil {
+		return domain.Session{}, fmt.Errorf("session collect: %w", err)
+	}
+
+	return sessionModel.ToDomain(), nil
+}
+
+func (r *SessionsRepository) GetActiveSession(
+	ctx context.Context,
+	id uuid.UUID,
+) (domain.Session, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	defer cancel()
+
+	query := `
+	SELECT *
+	FROM users.sessions
+	WHERE id = @id AND is_revoked = FALSE AND expires_at > NOW();`
+
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+
+	rows, err := r.pool.Query(ctx, query, args)
+	if err != nil {
+		return domain.Session{}, fmt.Errorf("session query: %w", err)
+	}
+
+	sessionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[sessionModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Session{}, fmt.Errorf(
+				"active session with id='%s' not found: %w",
+				id,
+				domain_errors.ErrNotFound,
+			)
+		}
 		return domain.Session{}, fmt.Errorf("session collect: %w", err)
 	}
 

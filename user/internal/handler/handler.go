@@ -26,16 +26,16 @@ type UsersService interface {
 		ctx context.Context,
 		sessionID uuid.UUID,
 	) error
+	ValidateSession(
+		ctx context.Context,
+		accessToken string,
+	) (*domain.TokenClaims, error)
 }
 
 func NewHandler(usersService UsersService) *Handler {
 	return &Handler{
 		usersService: usersService,
 	}
-}
-
-func (h *Handler) ValidateSession(_ context.Context, _ *userv1.ValidateSessionRequest) (*userv1.ValidateSessionResponse, error) {
-	panic("not implemented") // TODO: Implement
 }
 
 func (h *Handler) RefreshToken(_ context.Context, _ *userv1.RefreshTokenRequest) (*userv1.RefreshTokenResponse, error) {
