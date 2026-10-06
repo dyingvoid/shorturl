@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/dyingvoid/shorturl/user/internal/domain"
@@ -17,6 +19,7 @@ type TokenService interface {
 	Issue(user domain.User, session domain.Session) (domain.TokenPair, error)
 	ParseAccess(token string) (domain.TokenClaims, error)
 	ParseRefresh(token string) (domain.TokenClaims, error)
+	AccessTTL() time.Duration
 	RefreshTTL() time.Duration
 }
 
@@ -56,6 +59,7 @@ type UsersService struct {
 	usersRepository    UsersRepository
 	sessionsRepository SessionsRepository
 	cache              Cache
+	logger             *slog.Logger
 }
 
 func NewUsersService(
@@ -64,6 +68,7 @@ func NewUsersService(
 	usersRepository UsersRepository,
 	sessionsRepository SessionsRepository,
 	cache Cache,
+	logger *slog.Logger,
 ) *UsersService {
 	return &UsersService{
 		passwordHasher:     passwordHasher,
@@ -71,5 +76,10 @@ func NewUsersService(
 		usersRepository:    usersRepository,
 		sessionsRepository: sessionsRepository,
 		cache:              cache,
+		logger:             logger,
 	}
+}
+
+func (s *UsersService) sessionKey(sessionID uuid.UUID) string {
+	return fmt.Sprintf("session:%s", sessionID)
 }

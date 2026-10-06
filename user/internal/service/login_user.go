@@ -44,5 +44,14 @@ func (s *UsersService) Login(
 		return domain.TokenPair{}, fmt.Errorf("issue tokens: %w", err)
 	}
 
+	sessionKey := s.sessionKey(session.ID)
+	if err := s.cache.Set(ctx, sessionKey, user.ID.String(), s.tokenService.AccessTTL()); err != nil {
+		s.logger.Error(
+			"cache session",
+			"error", err,
+			"session_id", session.ID,
+		)
+	}
+
 	return tokens, nil
 }

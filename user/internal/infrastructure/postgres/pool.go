@@ -36,67 +36,44 @@ type pool struct {
 }
 
 func (p *pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.opTimeout)
-	defer cancel()
-
 	rows, err := p.Pool.Query(ctx, sql, args...)
 
 	return rows, mapQueryError(err)
 }
 
 func (p *pool) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	ctx, cancel := context.WithTimeout(ctx, p.opTimeout)
-	defer cancel()
-
 	return queryRow{Row: p.Pool.QueryRow(ctx, sql, args...)}
 }
 
 func (p *pool) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.opTimeout)
-	defer cancel()
-
 	tag, err := p.Pool.Exec(ctx, sql, arguments...)
 
 	return tag, mapQueryError(err)
 }
 
 func (p *pool) Begin(ctx context.Context) (Tx, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.opTimeout)
-	defer cancel()
-
 	tx, err := p.Pool.Begin(ctx)
 	if err != nil {
 		return nil, mapQueryError(err)
 	}
 
-	return &txWrapper{Tx: tx, opTimeout: p.opTimeout}, nil
+	return &txWrapper{Tx: tx}, nil
 }
 
 type txWrapper struct {
 	pgx.Tx
-	opTimeout time.Duration
 }
 
 func (t *txWrapper) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	ctx, cancel := context.WithTimeout(ctx, t.opTimeout)
-	defer cancel()
-
 	rows, err := t.Tx.Query(ctx, sql, args...)
-
 	return rows, mapQueryError(err)
 }
 
 func (t *txWrapper) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	ctx, cancel := context.WithTimeout(ctx, t.opTimeout)
-	defer cancel()
-
 	return queryRow{Row: t.Tx.QueryRow(ctx, sql, args...)}
 }
 
 func (t *txWrapper) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
-	ctx, cancel := context.WithTimeout(ctx, t.opTimeout)
-	defer cancel()
-
 	tag, err := t.Tx.Exec(ctx, sql, arguments...)
 
 	return tag, mapQueryError(err)

@@ -57,6 +57,10 @@ func (s *TokenService) Issue(
 	}, nil
 }
 
+func (s *TokenService) AccessTTL() time.Duration {
+	return s.accessTokenTTL
+}
+
 func (s *TokenService) RefreshTTL() time.Duration {
 	return s.refreshTokenTTL
 }

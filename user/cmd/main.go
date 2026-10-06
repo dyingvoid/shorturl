@@ -43,9 +43,9 @@ func main() {
 	usersRepository := users_postgres_repository.NewUsersRepository(pool)
 	sessionsRepository := users_postgres_repository.NewSessionsRepository(pool)
 	usersService := service.NewUsersService(
-		hasher, tokenService, 
-		usersRepository, sessionsRepository, 
-		redisCache,
+		hasher, tokenService,
+		usersRepository, sessionsRepository,
+		redisCache, appLogger,
 	)
 
 	serverCfg := config.NewMust()

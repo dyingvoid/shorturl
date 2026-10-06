@@ -59,22 +59,16 @@ func (r *SessionsRepository) RevokeSession(
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("session begin: %w", err)
-	}
-	defer tx.Rollback(ctx)
+	query := `
+	UPDATE users.sessions
+	SET is_revoked = TRUE, updated_at = NOW()
+	WHERE id = @id;`
 
 	args := pgx.NamedArgs{
 		"id": id,
 	}
 
-	updateQuery := `
-	UPDATE users.sessions
-	SET is_revoked = TRUE, updated_at = NOW()
-	WHERE id = @id;`
-
-	tag, err := tx.Exec(ctx, updateQuery, args)
+	tag, err := r.pool.Exec(ctx, query, args)
 	if err != nil {
 		return fmt.Errorf("session update: %w", err)
 	}
@@ -85,18 +79,6 @@ func (r *SessionsRepository) RevokeSession(
 			id,
 			domain_errors.ErrNotFound,
 		)
-	}
-
-	deleteQuery := `
-	DELETE FROM users.sessions
-	WHERE id = @id;`
-
-	if _, err := tx.Exec(ctx, deleteQuery, args); err != nil {
-		return fmt.Errorf("session delete: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("session commit: %w", err)
 	}
 
 	return nil
