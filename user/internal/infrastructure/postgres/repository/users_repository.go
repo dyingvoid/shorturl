@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/dyingvoid/shorturl/user/internal/domain"
@@ -91,4 +92,40 @@ func (r *UsersRepository) GetUserByEmail(
 	}
 
 	return userModel.ToDomain(), userModel.PasswordHash, nil
+}
+
+func (r *UsersRepository) GetLimit(
+	ctx context.Context,
+	userID uuid.UUID,
+) (int, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	defer cancel()
+
+	query := `
+	SELECT links_limit
+	FROM users.subscriptions
+	WHERE user_id = @user_id;`
+
+	args := pgx.NamedArgs{
+		"user_id": userID,
+	}
+
+	rows, err := r.pool.Query(ctx, query, args)
+	if err != nil {
+		return 0, fmt.Errorf("subscription query: %w", err)
+	}
+
+	subscriptionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[subscriptionModel])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, fmt.Errorf(
+				"subscription with user_id='%s' not found: %w",
+				userID,
+				domain_errors.ErrNotFound,
+			)
+		}
+		return 0, fmt.Errorf("subscription collect: %w", err)
+	}
+
+	return subscriptionModel.LinksLimit, nil
 }

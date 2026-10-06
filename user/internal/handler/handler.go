@@ -34,14 +34,14 @@ type UsersService interface {
 		ctx context.Context,
 		accessToken string,
 	) (*domain.TokenClaims, error)
+	GetLimit(
+		ctx context.Context,
+		userID uuid.UUID,
+	) (int, error)
 }
 
 func NewHandler(usersService UsersService) *Handler {
 	return &Handler{
 		usersService: usersService,
 	}
-}
-
-func (h *Handler) GetLimit(_ context.Context, _ *userv1.GetLimitRequest) (*userv1.GetLimitResponse, error) {
-	panic("not implemented") // TODO: Implement
 }

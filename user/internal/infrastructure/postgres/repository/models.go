@@ -19,6 +19,10 @@ func (m userModel) ToDomain() domain.User {
 	return domain.NewUser(m.ID, m.Email, m.CreatedAt, m.UpdatedAt)
 }
 
+type subscriptionModel struct {
+	LinksLimit int `db:"links_limit"`
+}
+
 type sessionModel struct {
 	ID        uuid.UUID `db:"id"`
 	UserID    uuid.UUID `db:"user_id"`

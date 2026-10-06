@@ -34,6 +34,10 @@ type UsersRepository interface {
 		ctx context.Context,
 		email domain.Email,
 	) (domain.User, string, error)
+	GetLimit(
+		ctx context.Context,
+		userID uuid.UUID,
+	) (int, error)
 }
 
 type SessionsRepository interface {
