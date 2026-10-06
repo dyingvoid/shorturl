@@ -38,14 +38,14 @@ func (s *TokenService) Issue(
 	now := time.Now()
 
 	accessToken, err := s.sign(
-		user, session.ID, now, s.accessTokenTTL, domain.TokenTypeAccess,
+		user.Email, user.ID, session.ID, now, domain.TokenTypeAccess,
 	)
 	if err != nil {
 		return domain.TokenPair{}, fmt.Errorf("sign access token: %w", err)
 	}
 
 	refreshToken, err := s.sign(
-		user, session.ID, now, s.refreshTokenTTL, domain.TokenTypeRefresh,
+		user.Email, user.ID, session.ID, now, domain.TokenTypeRefresh,
 	)
 	if err != nil {
 		return domain.TokenPair{}, fmt.Errorf("sign refresh token: %w", err)
@@ -55,6 +55,17 @@ func (s *TokenService) Issue(
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func (s *TokenService) RefreshAccess(claims domain.TokenClaims) (string, error) {
+	accessToken, err := s.sign(
+		claims.Email, claims.UserID, claims.SessionID, time.Now(), domain.TokenTypeAccess,
+	)
+	if err != nil {
+		return "", fmt.Errorf("sign access token: %w", err)
+	}
+
+	return accessToken, nil
 }
 
 func (s *TokenService) AccessTTL() time.Duration {
@@ -74,17 +85,21 @@ func (s *TokenService) ParseRefresh(token string) (domain.TokenClaims, error) {
 }
 
 func (s *TokenService) sign(
-	user domain.User,
-	sessionID uuid.UUID,
+	email string,
+	userID, sessionID uuid.UUID,
 	now time.Time,
-	ttl time.Duration,
 	tokenType domain.TokenType,
 ) (string, error) {
+	ttl := s.accessTokenTTL
+	if tokenType == domain.TokenTypeRefresh {
+		ttl = s.refreshTokenTTL
+	}
+
 	claims := Claims{
-		Email:     user.Email,
+		Email:     email,
 		TokenType: tokenType,
 		SessionID: sessionID.String(),
-		Subject:   user.ID.String(),
+		Subject:   userID.String(),
 		IssuedAt:  jwtlib.NewNumericDate(now),
 		ExpiresAt: jwtlib.NewNumericDate(now.Add(ttl)),
 	}

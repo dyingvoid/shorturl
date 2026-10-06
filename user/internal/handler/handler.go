@@ -26,6 +26,10 @@ type UsersService interface {
 		ctx context.Context,
 		sessionID uuid.UUID,
 	) error
+	RefreshToken(
+		ctx context.Context,
+		refreshToken string,
+	) (domain.TokenPair, error)
 	ValidateSession(
 		ctx context.Context,
 		accessToken string,
@@ -36,10 +40,6 @@ func NewHandler(usersService UsersService) *Handler {
 	return &Handler{
 		usersService: usersService,
 	}
-}
-
-func (h *Handler) RefreshToken(_ context.Context, _ *userv1.RefreshTokenRequest) (*userv1.RefreshTokenResponse, error) {
-	panic("not implemented") // TODO: Implement
 }
 
 func (h *Handler) GetLimit(_ context.Context, _ *userv1.GetLimitRequest) (*userv1.GetLimitResponse, error) {

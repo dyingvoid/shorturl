@@ -17,6 +17,7 @@ type PasswordHasher interface {
 
 type TokenService interface {
 	Issue(user domain.User, session domain.Session) (domain.TokenPair, error)
+	RefreshAccess(claims domain.TokenClaims) (string, error)
 	ParseAccess(token string) (domain.TokenClaims, error)
 	ParseRefresh(token string) (domain.TokenClaims, error)
 	AccessTTL() time.Duration
