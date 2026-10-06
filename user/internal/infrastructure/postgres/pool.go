@@ -2,15 +2,12 @@ package postgres
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
+	postgres_errors "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/errors"
 )
 
 type Pool interface {
@@ -35,26 +32,16 @@ type pool struct {
 	opTimeout time.Duration
 }
 
-func (p *pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	rows, err := p.Pool.Query(ctx, sql, args...)
-
-	return rows, mapQueryError(err)
-}
-
-func (p *pool) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	return queryRow{Row: p.Pool.QueryRow(ctx, sql, args...)}
-}
-
 func (p *pool) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	tag, err := p.Pool.Exec(ctx, sql, arguments...)
 
-	return tag, mapQueryError(err)
+	return tag, postgres_errors.MapError(err)
 }
 
 func (p *pool) Begin(ctx context.Context) (Tx, error) {
 	tx, err := p.Pool.Begin(ctx)
 	if err != nil {
-		return nil, mapQueryError(err)
+		return nil, err
 	}
 
 	return &txWrapper{Tx: tx}, nil
@@ -64,19 +51,10 @@ type txWrapper struct {
 	pgx.Tx
 }
 
-func (t *txWrapper) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	rows, err := t.Tx.Query(ctx, sql, args...)
-	return rows, mapQueryError(err)
-}
-
-func (t *txWrapper) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	return queryRow{Row: t.Tx.QueryRow(ctx, sql, args...)}
-}
-
 func (t *txWrapper) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	tag, err := t.Tx.Exec(ctx, sql, arguments...)
 
-	return tag, mapQueryError(err)
+	return tag, postgres_errors.MapError(err)
 }
 
 func (p *pool) OpTimeout() time.Duration {
@@ -85,29 +63,4 @@ func (p *pool) OpTimeout() time.Duration {
 
 func (p *pool) Close() {
 	p.Pool.Close()
-}
-
-type queryRow struct {
-	pgx.Row
-}
-
-func (r queryRow) Scan(dest ...any) error {
-	return mapQueryError(r.Row.Scan(dest...))
-}
-
-func mapQueryError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == postgres_errors.PgForeignKeyViolation {
-		return fmt.Errorf(
-			"%v: %w",
-			err,
-			postgres_errors.ErrFKViolation,
-		)
-	}
-
-	return err
 }

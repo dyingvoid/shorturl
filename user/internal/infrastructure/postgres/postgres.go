@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	postgres_errors "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,4 +33,14 @@ func dsn(config Config) string {
 		config.Port,
 		config.DB,
 	)
+}
+
+func CollectRows[T any](rows pgx.Rows) ([]T, error) {
+	models, err := pgx.CollectRows(rows, pgx.RowToStructByName[T])
+	return models, postgres_errors.MapError(err)
+}
+
+func CollectExactlyOneRow[T any](rows pgx.Rows) (T, error) {
+	model, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[T])
+	return model, postgres_errors.MapError(err)
 }

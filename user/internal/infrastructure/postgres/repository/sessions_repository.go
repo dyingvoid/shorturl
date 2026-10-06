@@ -45,7 +45,7 @@ func (r *SessionsRepository) CreateSession(
 		return domain.Session{}, fmt.Errorf("session query: %w", err)
 	}
 
-	sessionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[sessionModel])
+	sessionModel, err := postgres.CollectExactlyOneRow[sessionModel](rows)
 	if err != nil {
 		return domain.Session{}, fmt.Errorf("session collect: %w", err)
 	}
@@ -53,7 +53,7 @@ func (r *SessionsRepository) CreateSession(
 	return sessionModel.ToDomain(), nil
 }
 
-func (r *SessionsRepository) GetActiveSession(
+func (r *SessionsRepository) GetSession(
 	ctx context.Context,
 	id uuid.UUID,
 ) (domain.Session, error) {
@@ -63,7 +63,7 @@ func (r *SessionsRepository) GetActiveSession(
 	query := `
 	SELECT *
 	FROM users.sessions
-	WHERE id = @id AND is_revoked = FALSE AND expires_at > NOW();`
+	WHERE id = @id;`
 
 	args := pgx.NamedArgs{
 		"id": id,
@@ -74,9 +74,9 @@ func (r *SessionsRepository) GetActiveSession(
 		return domain.Session{}, fmt.Errorf("session query: %w", err)
 	}
 
-	sessionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[sessionModel])
+	sessionModel, err := postgres.CollectExactlyOneRow[sessionModel](rows)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return domain.Session{}, fmt.Errorf(
 				"active session with id='%s' not found: %w",
 				id,

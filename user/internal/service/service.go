@@ -46,7 +46,7 @@ type SessionsRepository interface {
 		userID uuid.UUID,
 		expiresAt time.Time,
 	) (domain.Session, error)
-	GetActiveSession(
+	GetSession(
 		ctx context.Context,
 		id uuid.UUID,
 	) (domain.Session, error)

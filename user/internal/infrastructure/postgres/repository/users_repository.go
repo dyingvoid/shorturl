@@ -50,7 +50,7 @@ func (r *UsersRepository) CreateUser(
 		return domain.User{}, fmt.Errorf("user query: %w", err)
 	}
 
-	userModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[userModel])
+	userModel, err := postgres.CollectExactlyOneRow[userModel](rows)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("user collect: %w", err)
 	}
@@ -79,9 +79,9 @@ func (r *UsersRepository) GetUserByEmail(
 		return domain.User{}, "", fmt.Errorf("user query: %w", err)
 	}
 
-	userModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[userModel])
+	userModel, err := postgres.CollectExactlyOneRow[userModel](rows)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return domain.User{}, "", fmt.Errorf(
 				"user with email='%s' not found: %w",
 				email.String(),
@@ -115,9 +115,9 @@ func (r *UsersRepository) GetLimit(
 		return 0, fmt.Errorf("subscription query: %w", err)
 	}
 
-	subscriptionModel, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[subscriptionModel])
+	subscriptionModel, err := postgres.CollectExactlyOneRow[subscriptionModel](rows)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return 0, fmt.Errorf(
 				"subscription with user_id='%s' not found: %w",
 				userID,

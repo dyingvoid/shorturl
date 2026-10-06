@@ -9,6 +9,7 @@ import (
 type Session struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
+	IsRevoked bool
 	ExpiresAt time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -25,4 +26,8 @@ func NewSession(
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
 	}
+}
+
+func (s *Session) IsActive() bool {
+	return !s.IsRevoked && s.ExpiresAt.After(time.Now())
 }
