@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"net"
+	"os/signal"
+	"syscall"
 
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	"github.com/dyingvoid/shorturl/user/internal/config"
@@ -15,13 +15,16 @@ import (
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/redis"
+	"github.com/dyingvoid/shorturl/user/internal/server"
 	"github.com/dyingvoid/shorturl/user/internal/service"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(
+		context.Background(), syscall.SIGINT, syscall.SIGTERM,
+	)
+	defer stop()
+
 	appCfg := config.NewMust()
 
 	appLogger := logger.Init(logger.NewMust())
@@ -50,17 +53,10 @@ func main() {
 		redisCache, appLogger,
 	)
 
-	grpcServer := grpc.NewServer()
-	userv1.RegisterUserServiceServer(grpcServer, handler.NewHandler(usersService))
+	grpcServer := server.New(server.NewConfigMust(), appLogger)
+	userv1.RegisterUserServiceServer(grpcServer.GRPC(), handler.NewHandler(usersService))
 
-	reflection.Register(grpcServer)
-	appLogger.Warn("server starting", "port", appCfg.UserServicePort)
-	lis, err := net.Listen(
-		"tcp", fmt.Sprintf(":%d", appCfg.UserServicePort),
-	)
-	if err != nil {
-		log.Fatalf("listen: %v", err)
+	if err := grpcServer.Run(ctx); err != nil {
+		log.Fatalf("run grpc server: %v", err)
 	}
-
-	log.Fatal(grpcServer.Serve(lis))
 }

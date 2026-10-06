@@ -4,21 +4,13 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	UserServicePort int `envconfig:"USER_SERVICE_PORT" default:"50051"`
-	TimeZone        *time.Location
+	TimeZone *time.Location
 }
 
 func New() (Config, error) {
-	var config Config
-	if err := envconfig.Process("", &config); err != nil {
-		return Config{}, fmt.Errorf("process envconfig: %w", err)
-	}
-
 	tz := os.Getenv("TIME_ZONE")
 	if tz == "" {
 		tz = "UTC"
@@ -28,9 +20,8 @@ func New() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("load time zone: %s: %w", tz, err)
 	}
-	config.TimeZone = zone
 
-	return config, nil
+	return Config{TimeZone: zone}, nil
 }
 
 func NewMust() Config {
