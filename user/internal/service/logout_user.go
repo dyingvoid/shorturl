@@ -15,13 +15,7 @@ func (s *UsersService) Logout(
 		return fmt.Errorf("revoke session: %w", err)
 	}
 
-	if err := s.cache.Delete(ctx, s.sessionKey(sessionID)); err != nil {
-		s.logger.Error(
-			"delete cached session",
-			"error", err,
-			"session_id", sessionID,
-		)
-	}
+	_ = s.cache.Delete(ctx, s.sessionKey(sessionID))
 
 	return nil
 }

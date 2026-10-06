@@ -45,13 +45,7 @@ func (s *UsersService) Login(
 	}
 
 	sessionKey := s.sessionKey(session.ID)
-	if err := s.cache.Set(ctx, sessionKey, user.ID.String(), s.tokenService.AccessTTL()); err != nil {
-		s.logger.Error(
-			"cache session",
-			"error", err,
-			"session_id", session.ID,
-		)
-	}
+	_ = s.cache.Set(ctx, sessionKey, user.ID.String(), s.tokenService.AccessTTL())
 
 	return tokens, nil
 }

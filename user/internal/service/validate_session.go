@@ -32,8 +32,7 @@ func (s *UsersService) ensureSessionActive(
 	key := s.sessionKey(sessionID)
 
 	cached, err := s.cache.Get(ctx, key)
-	switch err {
-	case nil:
+	if err == nil {
 		_, parseErr := uuid.Parse(string(cached))
 		if parseErr == nil {
 			return nil
@@ -42,12 +41,6 @@ func (s *UsersService) ensureSessionActive(
 		s.logger.Error(
 			"parse cached session",
 			"error", parseErr,
-			"session_id", sessionID,
-		)
-	default:
-		s.logger.Debug(
-			"get cached session",
-			"error", err,
 			"session_id", sessionID,
 		)
 	}
@@ -59,13 +52,7 @@ func (s *UsersService) ensureSessionActive(
 		)
 	}
 
-	if err := s.cache.Set(ctx, key, session.UserID.String(), s.tokenService.AccessTTL()); err != nil {
-		s.logger.Error(
-			"cache session",
-			"error", err,
-			"session_id", sessionID,
-		)
-	}
+	_ = s.cache.Set(ctx, key, session.UserID.String(), s.tokenService.AccessTTL())
 
 	return nil
 }

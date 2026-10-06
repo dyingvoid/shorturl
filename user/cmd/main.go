@@ -32,7 +32,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	redisCache, err := redis.Connect(ctx, redis.NewMust())
+	redisCache, err := redis.Connect(ctx, redis.NewMust(), appLogger)
 	if err != nil {
 		log.Fatalf("connect redis: %v", err)
 	}
