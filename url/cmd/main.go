@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/signal"
 	"syscall"
+	"time"
 
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 
@@ -20,6 +21,7 @@ func main() {
 	defer stop()
 
 	cfg := config.NewMust()
+	time.Local = cfg.TimeZone
 	log := logger.Init(logger.NewMust())
 
 	s := server.New(cfg, log)
