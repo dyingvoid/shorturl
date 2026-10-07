@@ -11,7 +11,7 @@ import (
 
 	"github.com/dyingvoid/shorturl/user/internal/domain"
 	domain_errors "github.com/dyingvoid/shorturl/user/internal/domain/errors"
-	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
+	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/pool"
 )
 
 type SessionsRepository struct {

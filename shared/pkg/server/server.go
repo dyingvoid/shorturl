@@ -18,6 +18,11 @@ type Server struct {
 	log  *slog.Logger
 }
 
+type Config interface {
+	Port() int
+	ShutdownTimeout() time.Duration
+}
+
 func New(cfg Config, log *slog.Logger) *Server {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -42,7 +47,7 @@ func (s *Server) GRPC() *grpc.Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Port()))
 	if err != nil {
 		return fmt.Errorf("listen grpc: %w", err)
 	}
@@ -89,8 +94,8 @@ func (s *Server) stop() error {
 	select {
 	case <-stopped:
 		return nil
-	case <-time.After(s.cfg.ShutdownTimeout):
+	case <-time.After(s.cfg.ShutdownTimeout()):
 		s.grpc.Stop()
-		return fmt.Errorf("shutdown grpc server: timeout %s exceeded", s.cfg.ShutdownTimeout)
+		return fmt.Errorf("shutdown grpc server: timeout %s exceeded", s.cfg.ShutdownTimeout())
 	}
 }

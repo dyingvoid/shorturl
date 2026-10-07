@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	TimeZone              *time.Location
-	ServerPort            int           `envconfig:"USER_SERVICE_PORT" default:"50051"`
+	ServerPort            int           `envconfig:"URL_SERVICE_PORT" default:"50051"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 

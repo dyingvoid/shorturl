@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/dyingvoid/shorturl/user/internal/infrastructure/logger"
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,31 +15,6 @@ import (
 )
 
 const requestIDKey = "x-request-id"
-
-func Recovery(log *slog.Logger) grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req any,
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (resp any, err error) {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Error(
-					"panic",
-					"error", p,
-					"stack", string(debug.Stack()),
-					"method", info.FullMethod,
-					"request_id", requestIDFromContext(ctx),
-				)
-
-				err = status.Error(codes.Internal, "internal error")
-			}
-		}()
-
-		return handler(ctx, req)
-	}
-}
 
 func RequestID() grpc.UnaryServerInterceptor {
 	return func(
@@ -109,6 +84,31 @@ func Trace() grpc.UnaryServerInterceptor {
 		)
 
 		return resp, err
+	}
+}
+
+func Recovery(log *slog.Logger) grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (resp any, err error) {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Error(
+					"panic",
+					"error", p,
+					"stack", string(debug.Stack()),
+					"method", info.FullMethod,
+					"request_id", requestIDFromContext(ctx),
+				)
+
+				err = status.Error(codes.Internal, "internal error")
+			}
+		}()
+
+		return handler(ctx, req)
 	}
 }
 

@@ -2,20 +2,19 @@ package main
 
 import (
 	"context"
-	"log"
 	"os/signal"
 	"syscall"
 
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/server"
 	"github.com/dyingvoid/shorturl/user/internal/config"
 	"github.com/dyingvoid/shorturl/user/internal/handler"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/hashing"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/jwt"
-	"github.com/dyingvoid/shorturl/user/internal/infrastructure/logger"
-	"github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres"
+	postgres "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/pool"
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/redis"
-	"github.com/dyingvoid/shorturl/user/internal/server"
 	"github.com/dyingvoid/shorturl/user/internal/service"
 )
 
@@ -25,21 +24,21 @@ func main() {
 	)
 	defer stop()
 
-	appCfg := config.NewMust()
+	cfg := config.NewMust()
 
-	appLogger := logger.Init(logger.NewMust())
-	appLogger.Warn("application started")
-	appLogger.Info("time zone", "timezone", appCfg.TimeZone.String())
+	log := logger.Init(logger.NewMust())
+	log.Warn("application started")
+	log.Info("time zone", "timezone", cfg.TimeZone.String())
 
 	pool, err := postgres.Connect(ctx, postgres.NewMust())
 	if err != nil {
-		log.Fatalf("connect postgres: %v", err)
+		panic(err)
 	}
 	defer pool.Close()
 
-	redisCache, err := redis.Connect(ctx, redis.NewMust(), appLogger)
+	redisCache, err := redis.Connect(ctx, redis.NewMust(), log)
 	if err != nil {
-		log.Fatalf("connect redis: %v", err)
+		panic(err)
 	}
 	defer redisCache.Close()
 
@@ -50,13 +49,13 @@ func main() {
 	usersService := service.NewUsersService(
 		hasher, tokenService,
 		usersRepository, sessionsRepository,
-		redisCache, appLogger,
+		redisCache, log,
 	)
 
-	grpcServer := server.New(server.NewConfigMust(), appLogger)
-	userv1.RegisterUserServiceServer(grpcServer.GRPC(), handler.NewHandler(usersService))
+	s := server.New(cfg, log)
+	userv1.RegisterUserServiceServer(s.GRPC(), handler.New(usersService))
 
-	if err := grpcServer.Run(ctx); err != nil {
-		log.Fatalf("run grpc server: %v", err)
+	if err := s.Run(ctx); err != nil {
+		log.Error(err.Error())
 	}
 }
