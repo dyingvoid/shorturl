@@ -2,6 +2,7 @@
 export
 
 export USER_PROJECT_ROOT=$(shell pwd)/user
+export URL_PROJECT_ROOT=$(shell pwd)/url
 export PROJECT_ROOT=$(shell pwd)
 
 .PHONY: proto-gen run test lint up down migrate-up migrate-down
