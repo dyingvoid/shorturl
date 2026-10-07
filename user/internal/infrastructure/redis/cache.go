@@ -59,7 +59,3 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 
 	return nil
 }
-
-func (c *Cache) Close() {
-	_ = c.client.Close()
-}

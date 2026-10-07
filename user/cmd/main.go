@@ -7,6 +7,7 @@ import (
 
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
+	shared_redis "github.com/dyingvoid/shorturl/shared/pkg/redis"
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
 	"github.com/dyingvoid/shorturl/user/internal/config"
 	"github.com/dyingvoid/shorturl/user/internal/handler"
@@ -36,11 +37,13 @@ func main() {
 	}
 	defer pool.Close()
 
-	redisCache, err := redis.Connect(ctx, redis.NewMust(), log)
+	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
 		panic(err)
 	}
-	defer redisCache.Close()
+	defer redisClient.Close()
+
+	redisCache := redis.NewCache(redisClient, log)
 
 	hasher := hashing.NewPasswordHasher()
 	tokenService := jwt.NewTokenService(jwt.NewMust())
