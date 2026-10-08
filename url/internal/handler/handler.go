@@ -5,8 +5,11 @@ import (
 	"time"
 
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/types"
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 )
+
+const cacheSourceHeaderKey = "x-source"
 
 // impl --dir ./shared/pkg/proto/url/v1 'h *Handler' 'URLServiceServer'
 type Handler struct {
@@ -27,7 +30,7 @@ type URLService interface {
 	GetURL(
 		ctx context.Context,
 		shortCode string,
-	) (*domain.Link, error)
+	) (types.Sourced[*domain.Link], error)
 
 	ListUserURLs(
 		ctx context.Context,
@@ -45,7 +48,7 @@ type URLService interface {
 	Redirect(
 		ctx context.Context,
 		shortCode string,
-	) (string, error)
+	) (types.Sourced[string], error)
 }
 
 func New(urlService URLService) *Handler {
