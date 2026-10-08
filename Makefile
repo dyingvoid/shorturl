@@ -1,11 +1,12 @@
 -include user/.env
+-include url/.env
 export
 
 export USER_PROJECT_ROOT=$(shell pwd)/user
 export URL_PROJECT_ROOT=$(shell pwd)/url
 export PROJECT_ROOT=$(shell pwd)
 
-.PHONY: proto-gen run test lint up down migrate-up migrate-down
+.PHONY: proto-gen run test lint up down migrate-up migrate-down url-run
 
 env-cleanup:
 	@read -p "Clean up volume? [y/N]: " ans; \
@@ -73,5 +74,12 @@ user-run:
 	@cd ${PROJECT_ROOT} && \
 	go work sync && \
 	cd ${USER_PROJECT_ROOT} && \
+	go fmt ./... && \
+	go run ./cmd
+
+url-run:
+	@cd ${PROJECT_ROOT} && \
+	go work sync && \
+	cd ${URL_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd

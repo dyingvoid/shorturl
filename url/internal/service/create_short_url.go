@@ -26,29 +26,19 @@ func (s *Service) CreateShortURL(
 		return nil, fmt.Errorf("url limit unavailable: %w: %w", err, domain_errors.ErrUnavailable)
 	}
 
-	linkCounter, err := s.cache.GetLinkCounter(ctx, userID)
-	if err != nil {
-		if !errors.Is(err, domain_errors.ErrNotFound) {
-			return nil, err
-		}
-
-		linkCounter, err = s.links.Count(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count links: %w", err)
-		}
-
-		if err := s.cache.SetLinkCounter(ctx, userID, linkCounter); err != nil {
-			return nil, err
-		}
-	}
-
-	linkCounter, err = s.cache.IncLinkCounter(ctx, userID)
+	linkCounter, err := s.updateLinkCounter(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
+	committed := false
+	defer func (){
+		if !committed {
+			_, _ = s.cache.DecLinkCounter(ctx, userID)
+		}
+	}()
+
 	if urlLimit < linkCounter {
-		_, _ = s.cache.DecLinkCounter(ctx, userID)
 		return nil, fmt.Errorf("reached limit of %d: %w", urlLimit, domain_errors.ErrResourceExhausted)
 	}
 
@@ -61,6 +51,7 @@ func (s *Service) CreateShortURL(
 		err = s.links.Insert(ctx, &link)
 		switch {
 		case err == nil:
+			committed = true
 			return &link, nil
 		case errors.Is(err, domain_errors.ErrUniqueViolation):
 			continue
@@ -70,6 +61,34 @@ func (s *Service) CreateShortURL(
 	}
 
 	return nil, fmt.Errorf("failed to create link: %w", domain_errors.ErrUniqueViolation)
+}
+
+func (s *Service) updateLinkCounter(
+	ctx context.Context,
+	userID string,
+) (int, error) {
+	linkCounter, err := s.cache.GetLinkCounter(ctx, userID)
+	if err != nil {
+		if !errors.Is(err, domain_errors.ErrNotFound) {
+			return 0, err
+		}
+
+		linkCounter, err = s.links.Count(ctx, userID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to count links: %w", err)
+		}
+
+		if err := s.cache.SetLinkCounter(ctx, userID, linkCounter); err != nil {
+			return 0, err
+		}
+	}
+
+	linkCounter, err = s.cache.IncLinkCounter(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return linkCounter, nil
 }
 
 func validateLink(rawURL string) error {
