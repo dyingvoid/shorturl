@@ -57,7 +57,7 @@ func (s *Server) Run(ctx context.Context) error {
 	go func() {
 		defer close(errCh)
 
-		s.log.Warn("server starting", "port", s.cfg.Port)
+		s.log.Warn("server starting", "port", s.cfg.Port())
 
 		err := s.grpc.Serve(lis)
 		if err != nil && !errors.Is(err, grpc.ErrServerStopped) {

@@ -8,9 +8,13 @@ import (
 )
 
 type Config struct {
-	URI      string        `envconfig:"MONGO_URI" default:"mongodb://localhost:27017"`
-	Database string        `envconfig:"MONGO_DB" required:"true"`
-	Timeout  time.Duration `envconfig:"MONGO_TIMEOUT" default:"10s"`
+	Timeout    time.Duration `envconfig:"MONGO_TIMEOUT" default:"10s"`
+	Host       string        `envconfig:"MONGO_HOST" default:"localhost"`
+	Port       int           `envconfig:"MONGO_PORT" default:"27017"`
+	DB         string        `envconfig:"MONGO_DB" required:"true"`
+	User       string        `envconfig:"MONGO_USER" required:"true"`
+	Password   string        `envconfig:"MONGO_PASSWORD" required:"true"`
+	AuthSource string        `envconfig:"MONGO_AUTH_SOURCE" default:"admin"`
 }
 
 func New() (Config, error) {

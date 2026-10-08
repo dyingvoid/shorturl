@@ -22,17 +22,14 @@ type URLService interface {
 		originalURL string,
 		expiresIn *time.Duration,
 	) (*domain.Link, error)
+
+	CreateURL(link domain.Link) string
 }
 
 func New(urlService URLService) *Handler {
 	return &Handler{
 		urlService: urlService,
 	}
-}
-
-func (h *Handler) CreateShortURL(ctx context.Context, r *userv1.CreateShortURLRequest) (*userv1.CreateShortURLResponse, error) {
-	_ = time.Unix(*r.ExpiresIn, 0)
-	return nil, nil
 }
 
 func (h *Handler) GetURL(_ context.Context, _ *userv1.GetURLRequest) (*userv1.GetURLResponse, error) {

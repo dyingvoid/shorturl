@@ -32,7 +32,7 @@ func (s *Service) CreateShortURL(
 	}
 
 	committed := false
-	defer func (){
+	defer func() {
 		if !committed {
 			_, _ = s.cache.DecLinkCounter(ctx, userID)
 		}

@@ -2,29 +2,38 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 )
 
 type Service struct {
-	usersService     UsersService
-	cache            Cache
-	links            LinksRepository
+	url              string
 	createURLRetries int
+
+	usersService UsersService
+	cache        Cache
+	links        LinksRepository
 }
 
 func New(
+	url string,
+	createURLRetries int,
 	usersService UsersService,
 	cache Cache,
 	links LinksRepository,
-	createURLRetries int,
 ) *Service {
 	return &Service{
+		url:              url,
+		createURLRetries: createURLRetries,
 		usersService:     usersService,
 		cache:            cache,
 		links:            links,
-		createURLRetries: createURLRetries,
 	}
+}
+
+func (s *Service) CreateURL(link domain.Link) string {
+	return fmt.Sprintf("%s/%s", s.url, link.ShortCode)
 }
 
 type UsersService interface {

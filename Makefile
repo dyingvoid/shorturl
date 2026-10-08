@@ -13,6 +13,7 @@ env-cleanup:
 	if [ "$$ans" = "y" ]; then \
 		docker compose down postgres port-forwarder && \
 		rm -rf ${USER_PROJECT_ROOT}/out/postgres_data && \
+		rm -rf ${URL_PROJECT_ROOT}/out/mongo_data && \
 		echo "Volume has been cleaned up"; \
 	else \
 		echo "Clean up cancelled"; \

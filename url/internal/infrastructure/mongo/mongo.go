@@ -11,7 +11,12 @@ import (
 
 func Connect(ctx context.Context, cfg Config) (*mongo.Database, error) {
 	client, err := mongo.Connect(options.Client().
-		ApplyURI(cfg.URI).
+		ApplyURI(uri(cfg)).
+		SetAuth(options.Credential{
+			Username:   cfg.User,
+			Password:   cfg.Password,
+			AuthSource: cfg.AuthSource,
+		}).
 		SetConnectTimeout(cfg.Timeout).
 		SetServerSelectionTimeout(cfg.Timeout))
 	if err != nil {
@@ -24,5 +29,9 @@ func Connect(ctx context.Context, cfg Config) (*mongo.Database, error) {
 		return nil, fmt.Errorf("ping mongo: %w", err)
 	}
 
-	return client.Database(cfg.Database), nil
+	return client.Database(cfg.DB), nil
+}
+
+func uri(cfg Config) string {
+	return fmt.Sprintf("mongodb://%s:%d", cfg.Host, cfg.Port)
 }

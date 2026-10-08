@@ -15,6 +15,7 @@ import (
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
 	links_mongo_repository "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/repository"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
+	"github.com/dyingvoid/urlshort/url/internal/infrastructure/users_client"
 	"github.com/dyingvoid/urlshort/url/internal/service"
 )
 
@@ -27,6 +28,7 @@ func main() {
 	cfg := config.NewMust()
 	time.Local = cfg.TimeZone
 	log := logger.Init(logger.NewMust())
+	log.Warn("application starting")
 
 	mongoDB, err := mongo.Connect(ctx, mongo.NewMust())
 	if err != nil {
@@ -40,15 +42,25 @@ func main() {
 	}
 	defer redisClient.Close()
 
+	usersClient, err := users_client.Connect(ctx, users_client.NewMust())
+	if err != nil {
+		panic(err)
+	}
+	defer usersClient.Close()
+
 	redisCache := redis.NewCache(redisClient, log)
 	linksRepository := links_mongo_repository.NewLinksRepository(mongoDB)
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
 		panic(err)
 	}
-	urlService := service.New(nil, redisCache, linksRepository, cfg.CreateURLAttempts)
+	urlService := service.New(
+		cfg.URL, cfg.CreateURLAttempts,
+		usersClient, redisCache, linksRepository,
+	)
 
 	s := server.New(cfg, log)
 	urlv1.RegisterURLServiceServer(s.GRPC(), handler.New(urlService))
+
 	if err := s.Run(ctx); err != nil {
 		log.Error(err.Error())
 	}

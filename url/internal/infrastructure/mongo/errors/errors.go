@@ -24,5 +24,5 @@ func MapError(err error) error {
 		)
 	}
 
-	return fmt.Errorf("%v: %w", err, domain_errors.ErrUnavailable)
+	return err
 }
