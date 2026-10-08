@@ -30,6 +30,13 @@ type URLService interface {
 		shortCode string,
 	) (*domain.Link, error)
 
+	ListUserURLs(
+		ctx context.Context,
+		userID string,
+		limit int,
+		cursor string,
+	) ([]domain.Link, string, error)
+
 	DeleteURL(
 		ctx context.Context,
 		shortCode string,
@@ -41,10 +48,6 @@ func New(urlService URLService) *Handler {
 	return &Handler{
 		urlService: urlService,
 	}
-}
-
-func (h *Handler) ListUserURLs(_ context.Context, _ *userv1.ListUserURLsRequest) (*userv1.ListUserURLsResponse, error) {
-	panic("not implemented") // TODO: Implement
 }
 
 func (h *Handler) Redirect(_ context.Context, _ *userv1.RedirectRequest) (*userv1.RedirectResponse, error) {

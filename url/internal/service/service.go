@@ -93,6 +93,12 @@ type LinksRepository interface {
 		ctx context.Context,
 		shortCode string,
 	) (*domain.Link, error)
+	ListByUser(
+		ctx context.Context,
+		userID string,
+		limit int,
+		cursor string,
+	) ([]domain.Link, error)
 	Delete(
 		ctx context.Context,
 		shortCode string,

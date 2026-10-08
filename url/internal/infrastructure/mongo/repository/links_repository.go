@@ -9,6 +9,7 @@ import (
 	mongo_errors "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -56,6 +57,51 @@ func (r *LinksRepository) GetByShortCode(ctx context.Context, shortCode string) 
 	link := model.ToDomain()
 
 	return &link, nil
+}
+
+func (r *LinksRepository) ListByUser(
+	ctx context.Context,
+	userID string,
+	limit int,
+	cursor string,
+) ([]domain.Link, error) {
+	filter := bson.M{"user_id": userID}
+
+	if cursor != "" {
+		objectID, err := bson.ObjectIDFromHex(cursor)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"invalid cursor '%s': %v: %w",
+				cursor,
+				err,
+				domain_errors.ErrInvalidArgument,
+			)
+		}
+
+		filter["_id"] = bson.M{"$gt": objectID}
+	}
+
+	opts := options.Find().
+		SetSort(bson.D{{Key: "_id", Value: 1}}).
+		SetLimit(int64(limit + 1))
+
+	findCursor, err := r.db.Collection(linksCollection).Find(ctx, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("link find: %w", mongo_errors.MapError(err))
+	}
+	defer findCursor.Close(ctx)
+
+	var models []linkModel
+	if err := findCursor.All(ctx, &models); err != nil {
+		return nil, fmt.Errorf("link collect: %w", mongo_errors.MapError(err))
+	}
+
+	links := make([]domain.Link, 0, len(models))
+	for _, model := range models {
+		links = append(links, model.ToDomain())
+	}
+
+	return links, nil
 }
 
 func (r *LinksRepository) Delete(ctx context.Context, shortCode string) error {
