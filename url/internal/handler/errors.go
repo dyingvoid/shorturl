@@ -19,6 +19,8 @@ func mapDomainError(err error) error {
 		code = codes.InvalidArgument
 	case errors.Is(err, domain_errors.ErrNotFound):
 		code = codes.NotFound
+	case errors.Is(err, domain_errors.ErrPermissionDenied):
+		code = codes.PermissionDenied
 	case errors.Is(err, domain_errors.ErrUnavailable):
 		code = codes.Unavailable
 	case errors.Is(err, domain_errors.ErrResourceExhausted):

@@ -74,6 +74,10 @@ type Cache interface {
 		link *domain.Link,
 		ttl time.Duration,
 	) error
+	DeleteLink(
+		ctx context.Context,
+		shortCode string,
+	) error
 }
 
 type LinksRepository interface {
@@ -89,4 +93,8 @@ type LinksRepository interface {
 		ctx context.Context,
 		shortCode string,
 	) (*domain.Link, error)
+	Delete(
+		ctx context.Context,
+		shortCode string,
+	) error
 }

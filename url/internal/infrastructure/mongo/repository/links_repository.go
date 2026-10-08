@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dyingvoid/urlshort/url/internal/domain"
+	domain_errors "github.com/dyingvoid/urlshort/url/internal/domain/errors"
 	mongo_errors "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -55,4 +56,19 @@ func (r *LinksRepository) GetByShortCode(ctx context.Context, shortCode string) 
 	link := model.ToDomain()
 
 	return &link, nil
+}
+
+func (r *LinksRepository) Delete(ctx context.Context, shortCode string) error {
+	filter := bson.M{"short_code": shortCode}
+
+	result, err := r.db.Collection(linksCollection).DeleteOne(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("link delete: %w", mongo_errors.MapError(err))
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("link delete: %w", domain_errors.ErrNotFound)
+	}
+
+	return nil
 }

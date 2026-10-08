@@ -137,6 +137,19 @@ func (c *Cache) SetLink(ctx context.Context, link *domain.Link, ttl time.Duratio
 	return nil
 }
 
+func (c *Cache) DeleteLink(ctx context.Context, shortCode string) error {
+	key := linkKey(shortCode)
+
+	if err := c.client.Del(ctx, key).Err(); err != nil {
+		wrapped := fmt.Errorf("delete cache key '%s': %w", key, err)
+		c.logger.Error("delete cache key", "error", wrapped, "key", key)
+
+		return wrapped
+	}
+
+	return nil
+}
+
 func linkKey(shortCode string) string {
 	return fmt.Sprintf("%s%s", linkKeyPrefix, shortCode)
 }
