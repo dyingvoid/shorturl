@@ -66,7 +66,7 @@ migrate-action:
 		echo "action is not specified. Example: make migrate-action action=up"; \
 		exit 1; \
 	fi;
-	@docker compose run --rm todo-migrate \
+	@docker compose run --rm migrate \
 		-path /migrations \
 		-database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable \
 		"$(action)"
