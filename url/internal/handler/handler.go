@@ -5,7 +5,6 @@ import (
 	"time"
 
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
-	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 )
 
@@ -42,18 +41,15 @@ type URLService interface {
 		shortCode string,
 		userID string,
 	) error
+
+	Redirect(
+		ctx context.Context,
+		shortCode string,
+	) (string, error)
 }
 
 func New(urlService URLService) *Handler {
 	return &Handler{
 		urlService: urlService,
 	}
-}
-
-func (h *Handler) Redirect(_ context.Context, _ *userv1.RedirectRequest) (*userv1.RedirectResponse, error) {
-	panic("not implemented") // TODO: Implement
-}
-
-func (h *Handler) mustEmbedUnimplementedURLServiceServer() {
-	panic("not implemented") // TODO: Implement
 }
