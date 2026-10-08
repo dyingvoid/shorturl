@@ -54,7 +54,7 @@ func main() {
 		panic(err)
 	}
 	urlService := service.New(
-		cfg.URL, cfg.CreateURLAttempts,
+		cfg.URL, cfg.CreateURLAttempts, cfg.LinkCacheTTL,
 		usersClient, redisCache, linksRepository,
 	)
 

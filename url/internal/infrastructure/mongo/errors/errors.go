@@ -15,6 +15,10 @@ func MapError(err error) error {
 		return nil
 	}
 
+	if errors.Is(err, mongodriver.ErrNoDocuments) {
+		return fmt.Errorf("%v: %w", err, domain_errors.ErrNotFound)
+	}
+
 	if mongodriver.IsDuplicateKeyError(err) {
 		return fmt.Errorf(
 			"%v: %w: %w",

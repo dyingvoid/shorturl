@@ -22,6 +22,9 @@ func (m linkModel) ToDomain() domain.Link {
 		ID:          m.ObjectID.Hex(),
 		UserID:      m.UserID,
 		OriginalURL: m.OriginalURL,
+		ShortCode:   m.ShortCode,
+		IsActive:    m.IsActive,
+		CreatedAt:   m.CreatedAt,
 		ExpiresAt:   m.ExpiresAt,
 	}
 }
@@ -39,13 +42,18 @@ func newLinkModel(link domain.Link) linkModel {
 		}
 	}
 
+	createdAt := link.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+
 	return linkModel{
 		ObjectID:    oid,
 		UserID:      link.UserID,
 		ShortCode:   link.ShortCode,
 		OriginalURL: link.OriginalURL,
 		ExpiresAt:   link.ExpiresAt,
-		CreatedAt:   time.Now(),
-		IsActive:    true,
+		CreatedAt:   createdAt,
+		IsActive:    link.IsActive,
 	}
 }

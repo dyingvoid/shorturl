@@ -24,16 +24,17 @@ type URLService interface {
 	) (*domain.Link, error)
 
 	CreateURL(link domain.Link) string
+
+	GetURL(
+		ctx context.Context,
+		shortCode string,
+	) (*domain.Link, error)
 }
 
 func New(urlService URLService) *Handler {
 	return &Handler{
 		urlService: urlService,
 	}
-}
-
-func (h *Handler) GetURL(_ context.Context, _ *userv1.GetURLRequest) (*userv1.GetURLResponse, error) {
-	panic("not implemented") // TODO: Implement
 }
 
 func (h *Handler) DeleteURL(_ context.Context, _ *userv1.DeleteURLRequest) (*userv1.DeleteURLResponse, error) {

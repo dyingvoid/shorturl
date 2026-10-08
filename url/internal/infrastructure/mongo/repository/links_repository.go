@@ -43,3 +43,16 @@ func (r *LinksRepository) Insert(ctx context.Context, link *domain.Link) error {
 
 	return nil
 }
+
+func (r *LinksRepository) GetByShortCode(ctx context.Context, shortCode string) (*domain.Link, error) {
+	filter := bson.M{"short_code": shortCode}
+
+	var model linkModel
+	if err := r.db.Collection(linksCollection).FindOne(ctx, filter).Decode(&model); err != nil {
+		return nil, fmt.Errorf("link find: %w", mongo_errors.MapError(err))
+	}
+
+	link := model.ToDomain()
+
+	return &link, nil
+}

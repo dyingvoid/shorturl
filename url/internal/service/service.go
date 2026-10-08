@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 )
@@ -10,6 +11,7 @@ import (
 type Service struct {
 	url              string
 	createURLRetries int
+	linkCacheTTL     time.Duration
 
 	usersService UsersService
 	cache        Cache
@@ -19,6 +21,7 @@ type Service struct {
 func New(
 	url string,
 	createURLRetries int,
+	linkCacheTTL time.Duration,
 	usersService UsersService,
 	cache Cache,
 	links LinksRepository,
@@ -26,6 +29,7 @@ func New(
 	return &Service{
 		url:              url,
 		createURLRetries: createURLRetries,
+		linkCacheTTL:     linkCacheTTL,
 		usersService:     usersService,
 		cache:            cache,
 		links:            links,
@@ -61,6 +65,15 @@ type Cache interface {
 		ctx context.Context,
 		userID string,
 	) (int, error)
+	GetLink(
+		ctx context.Context,
+		shortCode string,
+	) (*domain.Link, error)
+	SetLink(
+		ctx context.Context,
+		link *domain.Link,
+		ttl time.Duration,
+	) error
 }
 
 type LinksRepository interface {
@@ -72,4 +85,8 @@ type LinksRepository interface {
 		ctx context.Context,
 		link *domain.Link,
 	) error
+	GetByShortCode(
+		ctx context.Context,
+		shortCode string,
+	) (*domain.Link, error)
 }

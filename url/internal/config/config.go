@@ -11,6 +11,7 @@ import (
 type Config struct {
 	TimeZone              *time.Location
 	CreateURLAttempts     int           `envconfig:"URL_CREATE_ATTEMPTS" default:"3"`
+	LinkCacheTTL          time.Duration `envconfig:"LINK_CACHE_TTL" default:"5m"`
 	ServerPort            int           `envconfig:"URL_SERVICE_PORT" default:"50051"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 	URL                   string        `envconfig:"URL" default:"example.com"`

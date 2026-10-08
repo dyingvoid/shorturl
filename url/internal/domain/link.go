@@ -12,6 +12,8 @@ type Link struct {
 	UserID      string
 	OriginalURL string
 	ShortCode   string
+	IsActive    bool
+	CreatedAt   time.Time
 	ExpiresAt   *time.Time
 }
 
@@ -28,6 +30,8 @@ func NewLink(
 		UserID:      userID,
 		OriginalURL: orignialURL,
 		ShortCode:   short,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
 	}
 
 	if expiresIn != nil {
@@ -36,6 +40,14 @@ func NewLink(
 	}
 
 	return link, nil
+}
+
+func (l *Link) Active() bool {
+	if !l.IsActive {
+		return false
+	}
+
+	return l.ExpiresAt == nil || l.ExpiresAt.After(time.Now())
 }
 
 const base62Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
