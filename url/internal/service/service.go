@@ -7,9 +7,24 @@ import (
 )
 
 type Service struct {
-	usersService UsersService
-	cache        Cache
-	links        LinksRepository
+	usersService     UsersService
+	cache            Cache
+	links            LinksRepository
+	createURLRetries int
+}
+
+func New(
+	usersService UsersService,
+	cache Cache,
+	links LinksRepository,
+	createURLRetries int,
+) *Service {
+	return &Service{
+		usersService:     usersService,
+		cache:            cache,
+		links:            links,
+		createURLRetries: createURLRetries,
+	}
 }
 
 type UsersService interface {
@@ -47,5 +62,5 @@ type LinksRepository interface {
 	Insert(
 		ctx context.Context,
 		link *domain.Link,
-	) (int, error)
+	) error
 }

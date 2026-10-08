@@ -10,7 +10,7 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-const linkCounterKeyPrefix = "link_counter:"
+const linkCounterKeyPrefix = "counter:"
 
 type Cache struct {
 	client *goredis.Client

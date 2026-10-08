@@ -6,15 +6,28 @@ import (
 
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
+	"github.com/dyingvoid/urlshort/url/internal/domain"
 )
 
 // impl --dir ./shared/pkg/proto/url/v1 'h *Handler' 'URLServiceServer'
 type Handler struct {
 	urlv1.UnimplementedURLServiceServer
+	urlService URLService
 }
 
-func New() *Handler {
-	return &Handler{}
+type URLService interface {
+	CreateShortURL(
+		ctx context.Context,
+		userID string,
+		originalURL string,
+		expiresIn *time.Duration,
+	) (*domain.Link, error)
+}
+
+func New(urlService URLService) *Handler {
+	return &Handler{
+		urlService: urlService,
+	}
 }
 
 func (h *Handler) CreateShortURL(ctx context.Context, r *userv1.CreateShortURLRequest) (*userv1.CreateShortURLResponse, error) {

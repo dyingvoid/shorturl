@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/dyingvoid/urlshort/url/internal/domain"
@@ -51,24 +52,39 @@ func (s *Service) CreateShortURL(
 		return nil, fmt.Errorf("reached limit of %d: %w", urlLimit, domain_errors.ErrResourceExhausted)
 	}
 
-	// TODO: to app config
-	limit := 3
-	for range limit {
-		link := domain.NewLink(userID, originalURL, expiresIn)
-		if linkCounter, err := s.links.Insert(ctx, &link); err != nil {
-			switch {
-			case errors.Is(err, domain_errors.ErrResourceExhausted):
-				_ = s.cache.SetLinkCounter(ctx, userID, linkCounter)
-				return nil, err
-			case errors.Is(err, domain_errors.ErrUniqueViolation):
-				continue
-			}
+	for range s.createURLRetries {
+		link, err := domain.NewLink(userID, originalURL, expiresIn)
+		if err != nil {
+			return nil, fmt.Errorf("error creating link: %w", err)
+		}
+
+		err = s.links.Insert(ctx, &link)
+		switch {
+		case err == nil:
+			return &link, nil
+		case errors.Is(err, domain_errors.ErrUniqueViolation):
+			continue
+		default:
+			return nil, err
 		}
 	}
 
 	return nil, fmt.Errorf("failed to create link: %w", domain_errors.ErrUniqueViolation)
 }
 
-func validateLink(url string) error {
-	return domain_errors.ErrInvalidArgument
+func validateLink(rawURL string) error {
+	parsed, err := url.ParseRequestURI(rawURL)
+	if err != nil {
+		return fmt.Errorf("parse url %q: %w", rawURL, domain_errors.ErrInvalidArgument)
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("unsupported url scheme %q: %w", parsed.Scheme, domain_errors.ErrInvalidArgument)
+	}
+
+	if parsed.Host == "" {
+		return fmt.Errorf("url %q has no host: %w", rawURL, domain_errors.ErrInvalidArgument)
+	}
+
+	return nil
 }
