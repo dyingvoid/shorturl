@@ -1,12 +1,14 @@
 -include user/.env
 -include url/.env
+-include gateway/.env
 export
 
 export USER_PROJECT_ROOT=$(shell pwd)/user
 export URL_PROJECT_ROOT=$(shell pwd)/url
+export GATEWAY_PROJECT_ROOT=$(shell pwd)/gateway
 export PROJECT_ROOT=$(shell pwd)
 
-.PHONY: proto-gen run test lint up down migrate-up migrate-down url-run
+.PHONY: proto-gen run test lint up down migrate-up migrate-down url-run gateway-run
 
 env-cleanup:
 	@read -p "Clean up volume? [y/N]: " ans; \
@@ -82,5 +84,12 @@ url-run:
 	@cd ${PROJECT_ROOT} && \
 	go work sync && \
 	cd ${URL_PROJECT_ROOT} && \
+	go fmt ./... && \
+	go run ./cmd
+
+gateway-run:
+	@cd ${PROJECT_ROOT} && \
+	go work sync && \
+	cd ${GATEWAY_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
