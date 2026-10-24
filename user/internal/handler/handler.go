@@ -40,7 +40,7 @@ type UsersService interface {
 	) (int, error)
 }
 
-func NewHandler(usersService UsersService) *Handler {
+func New(usersService UsersService) *Handler {
 	return &Handler{
 		usersService: usersService,
 	}

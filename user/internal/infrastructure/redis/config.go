@@ -8,9 +8,17 @@ import (
 )
 
 type Config struct {
-	Host    string        `envconfig:"REDIS_HOST" required:"true"`
-	Port    int           `envconfig:"REDIS_PORT" default:"6379"`
-	Timeout time.Duration `envconfig:"REDIS_TIMEOUT" required:"true"`
+	Host           string        `envconfig:"REDIS_HOST" required:"true"`
+	Port           int           `envconfig:"REDIS_PORT" default:"6379"`
+	RequestTimeout time.Duration `envconfig:"REDIS_TIMEOUT" required:"true"`
+}
+
+func (c Config) Addr() string {
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+}
+
+func (c Config) Timeout() time.Duration {
+	return c.RequestTimeout
 }
 
 func New() (Config, error) {

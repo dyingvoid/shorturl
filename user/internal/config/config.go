@@ -4,13 +4,22 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	TimeZone *time.Location
+	TimeZone              *time.Location
+	ServerPort            int           `envconfig:"USER_SERVICE_PORT" default:"50051"`
+	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 
 func New() (Config, error) {
+	var config Config
+	if err := envconfig.Process("", &config); err != nil {
+		return Config{}, fmt.Errorf("process envconfig: %w", err)
+	}
+
 	tz := os.Getenv("TIME_ZONE")
 	if tz == "" {
 		tz = "UTC"
@@ -20,8 +29,9 @@ func New() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("load time zone: %s: %w", tz, err)
 	}
+	config.TimeZone = zone
 
-	return Config{TimeZone: zone}, nil
+	return config, nil
 }
 
 func NewMust() Config {
@@ -32,4 +42,12 @@ func NewMust() Config {
 	}
 
 	return config
+}
+
+func (c Config) Port() int {
+	return c.ServerPort
+}
+
+func (c Config) ShutdownTimeout() time.Duration {
+	return c.ServerShutdownTimeout
 }

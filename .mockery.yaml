@@ -7,7 +7,7 @@ force-file-write: true
 formatter: goimports
 formatter-options:
   goimports:
-    local-prefix: github.com/dyingvoid/shorturl
+    local-prefix: github.com/dyingvoid/shorturl,github.com/dyingvoid/urlshort
 packages:
   github.com/dyingvoid/shorturl/user/internal/service:
     interfaces:
@@ -16,3 +16,8 @@ packages:
       Cache:
       PasswordHasher:
       TokenService:
+  github.com/dyingvoid/urlshort/url/internal/service:
+    interfaces:
+      UsersService:
+      Cache:
+      LinksRepository:

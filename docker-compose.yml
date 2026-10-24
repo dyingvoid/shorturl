@@ -27,6 +27,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
     ports:
       - "6379:6379"
     healthcheck:
@@ -34,6 +35,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongo}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-url_shortener}
+    ports:
+      - "27017:27017"
+    volumes:
+      - ${URL_PROJECT_ROOT}/out/mongo_data:/data/db
 
 volumes:
   postgres_data:
