@@ -1,0 +1,23 @@
+template: testify
+dir: "{{.InterfaceDir}}/mocks"
+filename: "mock_{{.InterfaceName | snakecase}}.go"
+structname: "Mock{{.InterfaceName}}"
+pkgname: mocks
+force-file-write: true
+formatter: goimports
+formatter-options:
+  goimports:
+    local-prefix: github.com/dyingvoid/shorturl,github.com/dyingvoid/urlshort
+packages:
+  github.com/dyingvoid/shorturl/user/internal/service:
+    interfaces:
+      UsersRepository:
+      SessionsRepository:
+      Cache:
+      PasswordHasher:
+      TokenService:
+  github.com/dyingvoid/urlshort/url/internal/service:
+    interfaces:
+      UsersService:
+      Cache:
+      LinksRepository:
