@@ -29,11 +29,18 @@ func NewURLsHTTPHandler(urls URLsService, auth core_http_middleware.Middleware) 
 	}
 }
 
-func (h *URLsHTTPHandler) Routes() []core_http_server.Route {
-	return []core_http_server.Route{
+func (h *URLsHTTPHandler) Routes() [][]core_http_server.Route {
+	res := make([][]core_http_server.Route, 0, 2)
+	res = append(res, []core_http_server.Route{
 		core_http_server.NewRoute(http.MethodPost, "/urls", h.CreateShortURL, h.auth),
 		core_http_server.NewRoute(http.MethodGet, "/urls", h.ListUserURLs, h.auth),
 		core_http_server.NewRoute(http.MethodDelete, "/urls/{code}", h.DeleteURL, h.auth),
+	})
+
+	// public unversioned
+	res = append(res, []core_http_server.Route{
 		core_http_server.NewRoute(http.MethodGet, "/{code}", h.Redirect),
-	}
+	})
+
+	return res
 }

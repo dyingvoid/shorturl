@@ -67,6 +67,7 @@ func main() {
 
 	authHTTP := auth_transport_http.NewAuthHTTPHandler(usersService)
 	urlsHTTP := urls_transport_http.NewURLsHTTPHandler(urlsService, authHTTP.AuthMiddleware)
+	urlRoutes := urlsHTTP.Routes()
 
 	srv := core_http_server.New(httpConfig, log,
 		core_http_middleware.RequestID(),
@@ -79,9 +80,10 @@ func main() {
 
 	v1 := core_http_server.NewVersionRouter(core_http_server.V1)
 	v1.RegisterRoutes(authHTTP.Routes()...)
-	v1.RegisterRoutes(urlsHTTP.Routes()...)
-	v1.RegisterRoutes()
+	v1.RegisterRoutes(urlRoutes[0]...)
+
 	srv.RegisterAPIRoutes(v1)
+	srv.RegisterRoutes(urlRoutes[1]...)
 	srv.RegisterSwagger()
 
 	if err := srv.Run(ctx); err != nil {
