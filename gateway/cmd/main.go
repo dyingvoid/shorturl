@@ -68,8 +68,8 @@ func main() {
 	v1 := core_http_server.NewVersionRouter(core_http_server.V1)
 	v1.RegisterRoutes(authHTTP.Routes()...)
 	v1.RegisterRoutes(urlsHTTP.Routes()...)
+	v1.RegisterRoutes()
 	srv.RegisterAPIRoutes(v1)
-	srv.RegisterRoutes(urlsHTTP.PublicRoutes()...)
 
 	if err := srv.Run(ctx); err != nil {
 		log.Error("run HTTP server", "error", err)

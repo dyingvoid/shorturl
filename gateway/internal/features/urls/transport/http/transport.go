@@ -30,36 +30,10 @@ func NewURLsHTTPHandler(urls URLsService, auth core_http_middleware.Middleware) 
 }
 
 func (h *URLsHTTPHandler) Routes() []core_http_server.Route {
-	middleware := []core_http_middleware.Middleware{h.auth}
-
 	return []core_http_server.Route{
-		{
-			Method:     http.MethodPost,
-			Path:       "/urls",
-			Handler:    h.CreateShortURL,
-			Middleware: middleware,
-		},
-		{
-			Method:     http.MethodGet,
-			Path:       "/urls",
-			Handler:    h.ListUserURLs,
-			Middleware: middleware,
-		},
-		{
-			Method:     http.MethodDelete,
-			Path:       "/urls/{code}",
-			Handler:    h.DeleteURL,
-			Middleware: middleware,
-		},
-	}
-}
-
-func (h *URLsHTTPHandler) PublicRoutes() []core_http_server.Route {
-	return []core_http_server.Route{
-		{
-			Method:  http.MethodGet,
-			Path:    "/{code}",
-			Handler: h.Redirect,
-		},
+		core_http_server.NewRoute(http.MethodPost, "/urls", h.CreateShortURL, h.auth),
+		core_http_server.NewRoute(http.MethodGet, "/urls", h.ListUserURLs, h.auth),
+		core_http_server.NewRoute(http.MethodDelete, "/urls/{code}", h.DeleteURL, h.auth),
+		core_http_server.NewRoute(http.MethodGet, "/{code}", h.Redirect),
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	core_http_middleware "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/middleware"
 	core_http_server "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/server"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	"google.golang.org/grpc"
@@ -28,26 +27,9 @@ func NewAuthHTTPHandler(users AuthService) *AuthHTTPHandler {
 
 func (h *AuthHTTPHandler) Routes() []core_http_server.Route {
 	return []core_http_server.Route{
-		{
-			Method:  http.MethodPost,
-			Path:    "/auth/register",
-			Handler: h.Register,
-		},
-		{
-			Method:  http.MethodPost,
-			Path:    "/auth/login",
-			Handler: h.Login,
-		},
-		{
-			Method:  http.MethodPost,
-			Path:    "/auth/refresh",
-			Handler: h.RefreshToken,
-		},
-		{
-			Method:     http.MethodPost,
-			Path:       "/auth/logout",
-			Handler:    h.Logout,
-			Middleware: []core_http_middleware.Middleware{h.AuthMiddleware},
-		},
+		core_http_server.NewRoute(http.MethodPost, "/auth/register", h.Register),
+		core_http_server.NewRoute(http.MethodPost, "/auth/login", h.Login),
+		core_http_server.NewRoute(http.MethodPost, "/auth/refresh", h.RefreshToken),
+		core_http_server.NewRoute(http.MethodPost, "/auth/logout", h.Logout, h.AuthMiddleware),
 	}
 }
