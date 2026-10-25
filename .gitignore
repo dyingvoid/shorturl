@@ -37,3 +37,4 @@ go.work.sum
 .dsh/
 opencode.json
 out/
+.local.txt
