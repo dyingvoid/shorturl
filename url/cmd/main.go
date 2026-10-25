@@ -13,7 +13,7 @@ import (
 	"github.com/dyingvoid/urlshort/url/internal/config"
 	"github.com/dyingvoid/urlshort/url/internal/handler"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
-	links_mongo_repository "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/repository"
+	mongo_repository_links "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/links_repository"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/users_client"
 	"github.com/dyingvoid/urlshort/url/internal/service"
@@ -50,7 +50,7 @@ func main() {
 	defer usersClient.Close()
 
 	redisCache := redis.NewCache(redisClient, log)
-	linksRepository := links_mongo_repository.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
+	linksRepository := mongo_repository_links.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
 		panic(err)
 	}
