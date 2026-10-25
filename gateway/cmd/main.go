@@ -19,6 +19,16 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// @title ShortURL Gateway API
+// @version 1.0
+// @description HTTP gateway for authentication and short URL management.
+// @host localhost:8082
+// @BasePath /api/v1
+// @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Access token: "Bearer <token>".
 func main() {
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
@@ -76,3 +86,4 @@ func main() {
 		os.Exit(1)
 	}
 }
+

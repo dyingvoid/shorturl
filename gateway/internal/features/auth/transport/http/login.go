@@ -24,6 +24,18 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// Login authenticates a user.
+// @Summary Login user
+// @Description Validates credentials and returns an access and refresh token pair.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /auth/login [post]
 func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

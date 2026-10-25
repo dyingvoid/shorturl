@@ -10,7 +10,7 @@ import (
 	core_errors "github.com/dyingvoid/shorturl/gateway/internal/core/errors"
 )
 
-type errorResponse struct {
+type ErrorResponse struct {
 	Message string `json:"message"`
 	Error   string `json:"error"`
 }
@@ -69,10 +69,11 @@ func (h *Handler) Error(err error, msg string) {
 		errorText = "internal error"
 	}
 
-	h.JSON(errorResponse{Message: msg, Error: errorText}, status)
+	h.JSON(ErrorResponse{Message: msg, Error: errorText}, status)
 }
 
 func (h *Handler) Panic(value any, msg string) {
 	h.log.Error(msg, "panic", value, "stack", string(debug.Stack()))
-	h.JSON(errorResponse{Message: msg, Error: msg}, http.StatusInternalServerError)
+	h.JSON(ErrorResponse{Message: msg, Error: msg}, http.StatusInternalServerError)
 }
+

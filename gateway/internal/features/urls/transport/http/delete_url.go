@@ -11,6 +11,20 @@ import (
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 )
 
+// DeleteURL deletes a short URL.
+// @Summary Delete URL
+// @Description Deletes a short URL owned by the authenticated user.
+// @Tags urls
+// @Produce json
+// @Security BearerAuth
+// @Param code path string true "Short code"
+// @Success 204 "No Content"
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 403 {object} core_http_response.ErrorResponse
+// @Failure 404 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /urls/{code} [delete]
 func (h *URLsHTTPHandler) DeleteURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

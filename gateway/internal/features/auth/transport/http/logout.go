@@ -10,6 +10,16 @@ import (
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 )
 
+// Logout terminates the current session.
+// @Summary Logout user
+// @Description Invalidates the session identified by the bearer token.
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 204 "No Content"
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /auth/logout [post]
 func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

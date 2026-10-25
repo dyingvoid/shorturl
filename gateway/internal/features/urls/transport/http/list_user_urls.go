@@ -25,6 +25,19 @@ type URLItem struct {
 	IsActive    bool   `json:"is_active"`
 }
 
+// ListUserURLs lists the authenticated user's short URLs.
+// @Summary List user URLs
+// @Description Returns a cursor-paginated list of URLs owned by the authenticated user.
+// @Tags urls
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Maximum number of URLs to return"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} ListUserURLsResponse
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /urls [get]
 func (h *URLsHTTPHandler) ListUserURLs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

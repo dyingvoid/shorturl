@@ -23,6 +23,18 @@ type RegisterResponse struct {
 	UserID string `json:"user_id"`
 }
 
+// Register creates a new user account.
+// @Summary Register user
+// @Description Creates a user account and returns its identifier.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Registration credentials"
+// @Success 201 {object} RegisterResponse
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 409 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /auth/register [post]
 func (h *AuthHTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

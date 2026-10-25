@@ -10,6 +10,16 @@ import (
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 )
 
+// Redirect redirects to the original URL.
+// @Summary Redirect short URL
+// @Description Redirects to the original URL for the given short code.
+// @Tags urls
+// @Param code path string true "Short code"
+// @Success 302 "Found"
+// @Header 302 {string} Location "Original URL"
+// @Failure 404 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /{code} [get]
 func (h *URLsHTTPHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

@@ -34,6 +34,19 @@ type CreateShortURLResponse struct {
 	ShortURL  string `json:"short_url"`
 }
 
+// CreateShortURL creates a short URL.
+// @Summary Create short URL
+// @Description Creates a shortened URL owned by the authenticated user.
+// @Tags urls
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body CreateShortURLRequest true "URL to shorten"
+// @Success 201 {object} CreateShortURLResponse
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /urls [post]
 func (h *URLsHTTPHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

@@ -28,6 +28,18 @@ type RefreshTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+// RefreshToken issues a new access token.
+// @Summary Refresh access token
+// @Description Exchanges a valid refresh token for a new access token.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} RefreshTokenResponse
+// @Failure 400 {object} core_http_response.ErrorResponse
+// @Failure 401 {object} core_http_response.ErrorResponse
+// @Failure 500 {object} core_http_response.ErrorResponse
+// @Router /auth/refresh [post]
 func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)
