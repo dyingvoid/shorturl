@@ -1,0 +1,358 @@
+basePath: /api/v1
+definitions:
+  github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  internal_features_auth_transport_http.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  internal_features_auth_transport_http.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  internal_features_auth_transport_http.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  internal_features_auth_transport_http.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
+  internal_features_auth_transport_http.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  internal_features_auth_transport_http.RegisterResponse:
+    properties:
+      user_id:
+        type: string
+    type: object
+  internal_features_urls_transport_http.CreateShortURLRequest:
+    properties:
+      expires_in:
+        type: integer
+      original_url:
+        type: string
+    type: object
+  internal_features_urls_transport_http.CreateShortURLResponse:
+    properties:
+      short_code:
+        type: string
+      short_url:
+        type: string
+    type: object
+  internal_features_urls_transport_http.ListUserURLsResponse:
+    properties:
+      next_cursor:
+        type: string
+      urls:
+        items:
+          $ref: '#/definitions/internal_features_urls_transport_http.URLItem'
+        type: array
+    type: object
+  internal_features_urls_transport_http.URLItem:
+    properties:
+      created_at:
+        type: integer
+      expires_at:
+        type: integer
+      is_active:
+        type: boolean
+      original_url:
+        type: string
+      short_code:
+        type: string
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: HTTP gateway for authentication and short URL management.
+  title: ShortURL Gateway API
+  version: "1.0"
+paths:
+  /{code}:
+    get:
+      description: Redirects to the original URL for the given short code.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Found
+          headers:
+            Location:
+              description: Original URL
+              type: string
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      summary: Redirect short URL
+      tags:
+      - urls
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates credentials and returns an access and refresh token pair.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_features_auth_transport_http.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_features_auth_transport_http.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Invalidates the session identified by the bearer token.
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a valid refresh token for a new access token.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_features_auth_transport_http.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_features_auth_transport_http.RefreshTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user account and returns its identifier.
+      parameters:
+      - description: Registration credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_features_auth_transport_http.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_features_auth_transport_http.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      summary: Register user
+      tags:
+      - auth
+  /urls:
+    get:
+      description: Returns a cursor-paginated list of URLs owned by the authenticated
+        user.
+      parameters:
+      - description: Maximum number of URLs to return
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_features_urls_transport_http.ListUserURLsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user URLs
+      tags:
+      - urls
+    post:
+      consumes:
+      - application/json
+      description: Creates a shortened URL owned by the authenticated user.
+      parameters:
+      - description: URL to shorten
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_features_urls_transport_http.CreateShortURLRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_features_urls_transport_http.CreateShortURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create short URL
+      tags:
+      - urls
+  /urls/{code}:
+    delete:
+      description: Deletes a short URL owned by the authenticated user.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete URL
+      tags:
+      - urls
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: 'Access token: "Bearer <token>".'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
