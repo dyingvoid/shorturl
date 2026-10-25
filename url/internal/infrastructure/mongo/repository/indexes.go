@@ -24,7 +24,7 @@ func (r *LinksRepository) EnsureIndexes(ctx context.Context) error {
 		},
 	}
 
-	if _, err := r.db.Collection(linksCollection).Indexes().CreateMany(ctx, models); err != nil {
+	if _, err := r.collection.Indexes().CreateMany(ctx, models); err != nil {
 		return fmt.Errorf("ensure links indexes: %w", err)
 	}
 

@@ -19,7 +19,6 @@ func (s *Service) Redirect(
 	origin := types.OriginCache
 	if err != nil {
 		origin = types.OriginDatabase
-
 		link, err = s.links.GetByShortCode(ctx, shortCode)
 		if err != nil {
 			return types.Sourced[string]{}, fmt.Errorf("failed to get link: %w", err)
@@ -32,5 +31,6 @@ func (s *Service) Redirect(
 
 	_ = s.cache.SetLink(ctx, link, s.linkCacheTTL)
 
+	// TODO: check mapping for Origin inside /gateway
 	return types.Sourced[string]{Value: link.OriginalURL, Origin: origin}, nil
 }

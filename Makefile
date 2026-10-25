@@ -101,3 +101,9 @@ gateway-run:
 	cd ${GATEWAY_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
+
+run-all: 
+	@$(MAKE) user-run & \
+	$(MAKE) url-run & \
+	$(MAKE) gateway-run & \
+	wait

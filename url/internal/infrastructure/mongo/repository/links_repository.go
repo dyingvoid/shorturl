@@ -17,17 +17,19 @@ const (
 )
 
 type LinksRepository struct {
-	db *mongo.Database
+	collection *mongo.Collection
 }
 
 func NewLinksRepository(db *mongo.Database) *LinksRepository {
-	return &LinksRepository{db: db}
+	return &LinksRepository{
+		collection: db.Collection(linksCollection),
+	}
 }
 
 func (r *LinksRepository) Count(ctx context.Context, userID string) (int, error) {
 	filter := bson.M{"user_id": userID}
 
-	count, err := r.db.Collection(linksCollection).CountDocuments(ctx, filter)
+	count, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {
 		return 0, fmt.Errorf("link count: %w", mongo_errors.MapError(err))
 	}
@@ -36,9 +38,7 @@ func (r *LinksRepository) Count(ctx context.Context, userID string) (int, error)
 }
 
 func (r *LinksRepository) Insert(ctx context.Context, link *domain.Link) error {
-	collection := r.db.Collection(linksCollection)
-
-	_, err := collection.InsertOne(ctx, newLinkModel(*link))
+	_, err := r.collection.InsertOne(ctx, newLinkModel(*link))
 	if err != nil {
 		return fmt.Errorf("link insert: %w", mongo_errors.MapError(err))
 	}
@@ -50,7 +50,7 @@ func (r *LinksRepository) GetByShortCode(ctx context.Context, shortCode string) 
 	filter := bson.M{"short_code": shortCode}
 
 	var model linkModel
-	if err := r.db.Collection(linksCollection).FindOne(ctx, filter).Decode(&model); err != nil {
+	if err := r.collection.FindOne(ctx, filter).Decode(&model); err != nil {
 		return nil, fmt.Errorf("link find: %w", mongo_errors.MapError(err))
 	}
 
@@ -85,7 +85,7 @@ func (r *LinksRepository) ListByUser(
 		SetSort(bson.D{{Key: "_id", Value: 1}}).
 		SetLimit(int64(limit + 1))
 
-	findCursor, err := r.db.Collection(linksCollection).Find(ctx, filter, opts)
+	findCursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("link find: %w", mongo_errors.MapError(err))
 	}
@@ -107,7 +107,7 @@ func (r *LinksRepository) ListByUser(
 func (r *LinksRepository) Delete(ctx context.Context, shortCode string) error {
 	filter := bson.M{"short_code": shortCode}
 
-	result, err := r.db.Collection(linksCollection).DeleteOne(ctx, filter)
+	result, err := r.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("link delete: %w", mongo_errors.MapError(err))
 	}

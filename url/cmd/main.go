@@ -30,11 +30,12 @@ func main() {
 	log := logger.Init(logger.NewMust())
 	log.Warn("application starting")
 
-	mongoDB, err := mongo.Connect(ctx, mongo.NewMust())
+	mongoCfg := mongo.NewMust()
+	mongoClient, err := mongo.Connect(ctx, mongoCfg)
 	if err != nil {
 		panic(err)
 	}
-	defer mongoDB.Client().Disconnect(ctx)
+	defer mongoClient.Disconnect(ctx)
 
 	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
@@ -49,7 +50,7 @@ func main() {
 	defer usersClient.Close()
 
 	redisCache := redis.NewCache(redisClient, log)
-	linksRepository := links_mongo_repository.NewLinksRepository(mongoDB)
+	linksRepository := links_mongo_repository.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
 		panic(err)
 	}
