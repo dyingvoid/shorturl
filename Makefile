@@ -73,6 +73,14 @@ migrate-action:
 		-database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable \
 		"$(action)"
 
+swagger-gen:
+	@docker compose run --rm swagger \
+		init \
+		-g /cmd/main.go \
+		-o docs \
+		--parseInternal \
+		--parseDependency
+
 user-run:
 	@cd ${PROJECT_ROOT} && \
 	go work sync && \

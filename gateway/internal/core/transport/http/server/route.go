@@ -19,9 +19,9 @@ func NewRoute(
 	middleware ...core_http_middleware.Middleware,
 ) Route {
 	return Route{
-		Method: method,
-		Path: path,
-		Handler: handler,
+		Method:     method,
+		Path:       path,
+		Handler:    handler,
 		Middleware: middleware,
 	}
 }
