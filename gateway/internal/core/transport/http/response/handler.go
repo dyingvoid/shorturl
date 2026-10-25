@@ -76,4 +76,3 @@ func (h *Handler) Panic(value any, msg string) {
 	h.log.Error(msg, "panic", value, "stack", string(debug.Stack()))
 	h.JSON(ErrorResponse{Message: msg, Error: msg}, http.StatusInternalServerError)
 }
-

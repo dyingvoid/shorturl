@@ -17,6 +17,8 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	_ "github.com/dyingvoid/shorturl/gateway/docs"
 )
 
 // @title ShortURL Gateway API
@@ -80,10 +82,10 @@ func main() {
 	v1.RegisterRoutes(urlsHTTP.Routes()...)
 	v1.RegisterRoutes()
 	srv.RegisterAPIRoutes(v1)
+	srv.RegisterSwagger()
 
 	if err := srv.Run(ctx); err != nil {
 		log.Error("run HTTP server", "error", err)
 		os.Exit(1)
 	}
 }
-
