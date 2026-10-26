@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	UsersServiceHost string `envconfig:"USERS_SERVICE_HOST" default:"localhost"`
-	UsersServicePort int    `envconfig:"USERS_SERVICE_PORT" default:"50051"`
+	UsersServiceHost string `envconfig:"USER_SERVICE_HOST" default:"localhost"`
+	UsersServicePort int    `envconfig:"USER_SERVICE_PORT" default:"50051"`
 	URLServiceHost   string `envconfig:"URL_SERVICE_HOST" default:"localhost"`
 	URLServicePort   int    `envconfig:"URL_SERVICE_PORT" default:"50052"`
 }

@@ -79,7 +79,7 @@ definitions:
       short_code:
         type: string
     type: object
-host: localhost:8082
+host: localhost:8090
 info:
   contact: {}
   description: HTTP gateway for authentication and short URL management.

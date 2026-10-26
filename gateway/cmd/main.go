@@ -24,7 +24,7 @@ import (
 // @title ShortURL Gateway API
 // @version 1.0
 // @description HTTP gateway for authentication and short URL management.
-// @host localhost:8082
+// @host localhost:8090
 // @BasePath /api/v1
 // @schemes http
 // @securityDefinitions.apikey BearerAuth
@@ -32,6 +32,7 @@ import (
 // @name Authorization
 // @description Access token: "Bearer <token>".
 func main() {
+	// TODO: dynamic swagger registration (port is static rn, not from env)
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
 	)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	"github.com/dyingvoid/shorturl/shared/pkg/types"
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 	domain_errors "github.com/dyingvoid/urlshort/url/internal/domain/errors"
@@ -12,6 +13,8 @@ import (
 func (s *Service) Redirect(
 	ctx context.Context, shortCode string, userView domain.UserView,
 ) (types.Sourced[string], error) {
+	log := logger.FromContext(ctx)
+
 	if shortCode == "" {
 		return types.Sourced[string]{}, fmt.Errorf("empty short code: %w", domain_errors.ErrInvalidArgument)
 	}
@@ -30,7 +33,7 @@ func (s *Service) Redirect(
 
 	go func() {
 		if err := s.producer.ProduceUserView(userView); err != nil {
-			s.logger.Error("produce user view", "error", err)
+			log.Error("produce user view", "error", err)
 		}
 	}()
 
