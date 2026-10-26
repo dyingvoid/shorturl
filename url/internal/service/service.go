@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/dyingvoid/urlshort/url/internal/domain"
@@ -16,6 +17,8 @@ type Service struct {
 	usersService UsersService
 	cache        Cache
 	links        LinksRepository
+	producer     Producer
+	logger       *slog.Logger
 }
 
 func New(
@@ -25,6 +28,8 @@ func New(
 	usersService UsersService,
 	cache Cache,
 	links LinksRepository,
+	producer Producer,
+	logger *slog.Logger,
 ) *Service {
 	return &Service{
 		url:              url,
@@ -33,6 +38,8 @@ func New(
 		usersService:     usersService,
 		cache:            cache,
 		links:            links,
+		producer:         producer,
+		logger:           logger,
 	}
 }
 
@@ -103,4 +110,8 @@ type LinksRepository interface {
 		ctx context.Context,
 		shortCode string,
 	) error
+}
+
+type Producer interface {
+	ProduceUserView(domain.UserView) error
 }

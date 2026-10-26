@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
+	"github.com/dyingvoid/urlshort/url/internal/domain"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
 func (h *Handler) Redirect(ctx context.Context, r *urlv1.RedirectRequest) (*urlv1.RedirectResponse, error) {
-	res, err := h.urlService.Redirect(ctx, r.ShortCode)
+	userView := domain.NewUserView(r.Ip, r.UserAgent, r.Referer)
+
+	res, err := h.urlService.Redirect(ctx, r.ShortCode, userView)
 	if err != nil {
 		return nil, mapDomainError(fmt.Errorf("failed to redirect: %w", err))
 	}

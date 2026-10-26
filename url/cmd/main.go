@@ -12,6 +12,7 @@ import (
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
 	"github.com/dyingvoid/urlshort/url/internal/config"
 	"github.com/dyingvoid/urlshort/url/internal/handler"
+	infrastructure_kafka "github.com/dyingvoid/urlshort/url/internal/infrastructure/kafka"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
 	mongo_repository_links "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/links_repository"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
@@ -49,6 +50,13 @@ func main() {
 	}
 	defer usersClient.Close()
 
+	kafkaCfg := infrastructure_kafka.NewMust()
+	userViewProducer, err := infrastructure_kafka.NewUserViewProducer(log, kafkaCfg)
+	if err != nil {
+		panic(err)
+	}
+	defer userViewProducer.Close()
+
 	redisCache := redis.NewCache(redisClient, log)
 	linksRepository := mongo_repository_links.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
@@ -56,7 +64,7 @@ func main() {
 	}
 	urlService := service.New(
 		cfg.URL, cfg.CreateURLAttempts, cfg.LinkCacheTTL,
-		usersClient, redisCache, linksRepository,
+		usersClient, redisCache, linksRepository, userViewProducer, log,
 	)
 
 	s := server.New(cfg, log)

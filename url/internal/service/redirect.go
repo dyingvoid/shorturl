@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/dyingvoid/shorturl/shared/pkg/types"
+	"github.com/dyingvoid/urlshort/url/internal/domain"
 	domain_errors "github.com/dyingvoid/urlshort/url/internal/domain/errors"
 )
 
 func (s *Service) Redirect(
-	ctx context.Context, shortCode string,
+	ctx context.Context, shortCode string, userView domain.UserView,
 ) (types.Sourced[string], error) {
 	if shortCode == "" {
 		return types.Sourced[string]{}, fmt.Errorf("empty short code: %w", domain_errors.ErrInvalidArgument)
@@ -25,12 +26,19 @@ func (s *Service) Redirect(
 		}
 	}
 
+	userView.SetLink(*link)
+
+	go func() {
+		if err := s.producer.ProduceUserView(userView); err != nil {
+			s.logger.Error("produce user view", "error", err)
+		}
+	}()
+
 	if !link.Active() {
 		return types.Sourced[string]{}, fmt.Errorf("link '%s' is not active: %w", link.ShortCode, domain_errors.ErrNotFound)
 	}
 
 	_ = s.cache.SetLink(ctx, link, s.linkCacheTTL)
 
-	// TODO: check mapping for Origin inside /gateway
 	return types.Sourced[string]{Value: link.OriginalURL, Origin: origin}, nil
 }
