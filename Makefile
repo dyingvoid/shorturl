@@ -8,7 +8,7 @@ export URL_PROJECT_ROOT=$(shell pwd)/url
 export GATEWAY_PROJECT_ROOT=$(shell pwd)/gateway
 export PROJECT_ROOT=$(shell pwd)
 
-.PHONY: proto-gen run test lint up down migrate-up migrate-down url-run gateway-run
+.PHONY: proto-gen run test test-int lint up down migrate-up migrate-down url-run gateway-run
 
 env-cleanup:
 	@read -p "Clean up volume? [y/N]: " ans; \
@@ -29,6 +29,9 @@ run:
 
 test:
 	go test -race -v ./user/...
+
+test-int:
+	go test -count=1 -timeout=15m -tags=integration ./gateway/integration/...
 
 lint:
 	golangci-lint run ./user/...
