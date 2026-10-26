@@ -82,23 +82,17 @@ swagger-gen:
 		--parseDependency
 
 user-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${USER_PROJECT_ROOT} && \
+	@cd ${USER_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
 
 url-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${URL_PROJECT_ROOT} && \
+	@cd ${URL_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
 
 gateway-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${GATEWAY_PROJECT_ROOT} && \
+	@cd ${GATEWAY_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
 

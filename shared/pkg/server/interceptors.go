@@ -7,38 +7,14 @@ import (
 	"time"
 
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
-	"github.com/google/uuid"
+	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-const requestIDKey = "x-request-id"
-
 func RequestID() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req any,
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (any, error) {
-		requestID := requestIDFromContext(ctx)
-		if requestID == "" {
-			requestID = uuid.NewString()
-		}
-
-		md := metadata.Pairs(requestIDKey, requestID)
-		if incoming, ok := metadata.FromIncomingContext(ctx); ok {
-			md = metadata.Join(incoming, md)
-		}
-
-		ctx = metadata.NewIncomingContext(ctx, md)
-
-		_ = grpc.SetHeader(ctx, metadata.Pairs(requestIDKey, requestID))
-
-		return handler(ctx, req)
-	}
+	return requestid.UnaryServerInterceptor()
 }
 
 func Logger(log *slog.Logger) grpc.UnaryServerInterceptor {
@@ -113,15 +89,9 @@ func Recovery(log *slog.Logger) grpc.UnaryServerInterceptor {
 }
 
 func requestIDFromContext(ctx context.Context) string {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ""
+	if id := requestid.FromContext(ctx); id != "" {
+		return id
 	}
 
-	values := md.Get(requestIDKey)
-	if len(values) == 0 {
-		return ""
-	}
-
-	return values[0]
+	return requestid.FromIncomingContext(ctx)
 }

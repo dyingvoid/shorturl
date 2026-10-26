@@ -14,6 +14,7 @@ import (
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -46,6 +47,7 @@ func main() {
 	usersConn, err := grpc.NewClient(
 		cfg.UsersServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
 	)
 	if err != nil {
 		log.Error("init users service client", "error", err)
@@ -56,6 +58,7 @@ func main() {
 	urlsConn, err := grpc.NewClient(
 		cfg.URLServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
 	)
 	if err != nil {
 		log.Error("init URL service client", "error", err)

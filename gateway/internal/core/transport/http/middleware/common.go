@@ -10,22 +10,22 @@ import (
 
 	core_http_response "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/response"
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
+	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
 )
-
-const requestIDHeader = "X-Request-ID"
 
 func RequestID() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			id := r.Header.Get(requestIDHeader)
+			id := r.Header.Get(requestid.Header)
 			if id == "" {
 				id = newRequestID()
 			}
 
-			r.Header.Set(requestIDHeader, id)
-			w.Header().Set(requestIDHeader, id)
+			r.Header.Set(requestid.Header, id)
+			w.Header().Set(requestid.Header, id)
 
-			next.ServeHTTP(w, r)
+			ctx := requestid.ToContext(r.Context(), id)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -34,7 +34,7 @@ func Logger(base *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := base.With(
-				slog.String("request_id", r.Header.Get(requestIDHeader)),
+				slog.String("request_id", r.Header.Get(requestid.Header)),
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 			)

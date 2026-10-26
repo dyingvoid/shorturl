@@ -31,7 +31,12 @@ func (h *URLsHTTPHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.urls.Redirect(ctx, &urlv1.RedirectRequest{ShortCode: code})
+	result, err := h.urls.Redirect(ctx, &urlv1.RedirectRequest{
+		ShortCode: code,
+		Ip:        core_http_request.ClientIP(r),
+		UserAgent: r.UserAgent(),
+		Referer:   r.Referer(),
+	})
 	if err != nil {
 		response.Error(core_errors.FromGRPC(err), "failed to redirect")
 		return
