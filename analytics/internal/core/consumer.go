@@ -3,73 +3,104 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	core_errors "github.com/dyingvoid/shorturl/analytics/internal/core/errors"
 )
 
+const (
+	defaultLimit   = 100
+	defaultTimeout = 5 * time.Second
+)
+
 type AnalyticsForwarder[T any] struct {
 	log     *slog.Logger
 	fetcher Fetcher[T]
 	writer  Writer[T]
+	limit   int
+	timeout time.Duration
 }
 
 func NewAnalyticsForwarder[T any](
 	log *slog.Logger,
 	fetcher Fetcher[T],
 	writer Writer[T],
+	limit int,
+	timeout time.Duration,
 ) *AnalyticsForwarder[T] {
+	if log == nil {
+		log = slog.Default()
+	}
+	if limit <= 0 {
+		limit = defaultLimit
+	}
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+
 	return &AnalyticsForwarder[T]{
 		log:     log,
 		fetcher: fetcher,
 		writer:  writer,
+		limit:   limit,
+		timeout: timeout,
 	}
 }
 
 func (f AnalyticsForwarder[T]) Run(ctx context.Context) error {
 	for {
-		if err := ctx.Err(); err != nil {
-			return err
+		if ctx.Err() != nil {
+			return nil
 		}
 
 		if err := f.runOnce(ctx); err != nil {
 			if errors.Is(err, core_errors.ErrParseRecord) {
 				return err
 			}
-			if errors.Is(err, context.DeadlineExceeded) {
-				continue
-			}
-			// TODO: log
+
+			f.log.Error("process batch", "error", err)
 		}
 	}
 }
 
 func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
-	// TODO: move limit and timeout values to config
-	const limit = 100
-	const timeout = 5 * time.Second
-
-	tctx, cancel := context.WithTimeout(ctx, timeout)
+	tctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
-	deliveries, err := f.fetcher.Fetch(tctx, limit)
-	if err != nil {
-		if errors.Is(err, core_errors.ErrParseRecord) {
-			return err
-		}
-		if errors.Is(err, context.DeadlineExceeded) {
-			// expected
-		} else {
-			// TODO: just log and continue
-		}
+	deliveries, err := f.fetcher.Fetch(tctx, f.limit)
+	switch {
+	case err == nil:
+	case errors.Is(err, core_errors.ErrParseRecord):
+		return err
+	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
+		// A fetch window closing without reaching the limit is expected:
+		// process whatever was collected so far.
+	default:
+		f.log.Error("fetch records", "error", err)
+	}
+
+	if len(deliveries) == 0 {
+		return nil
 	}
 
 	values := make([]T, 0, len(deliveries))
-	for _, d := range deliveries {
-		values = append(values, d.Value)
+	for _, delivery := range deliveries {
+		values = append(values, delivery.Value)
 	}
 
-	f.writer.WriteBatch(tctx, values)
+	if err := f.writer.WriteBatch(ctx, values); err != nil {
+		return fmt.Errorf("write batch: %w", err)
+	}
+
+	for _, delivery := range deliveries {
+		if err := delivery.Ack(ctx); err != nil {
+			f.log.Error("ack record", "error", err)
+		}
+	}
+
+	f.log.Debug("batch processed", "records", len(deliveries))
+
 	return nil
 }

@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/dyingvoid/shorturl/analytics/internal/application"
 	"github.com/dyingvoid/shorturl/analytics/internal/config"
+	"github.com/dyingvoid/shorturl/analytics/internal/core"
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
 )
@@ -41,7 +41,7 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("create kafka config: %w", err)
 	}
 
-	reader, err := kafkainfra.NewReader(kafkaConfig)
+	reader, err := kafkainfra.NewReader(kafkaConfig, logger)
 	if err != nil {
 		return fmt.Errorf("create kafka reader: %w", err)
 	}
@@ -71,12 +71,12 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
-	consumer := application.NewConsumer(
+	consumer := core.NewAnalyticsForwarder(
+		logger,
 		reader,
 		writer,
 		cfg.BatchSize,
 		cfg.BatchFlushInterval,
-		logger,
 	)
 
 	logger.Info(
