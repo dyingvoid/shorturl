@@ -7,7 +7,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/dyingvoid/shorturl/analytics/internal/application"
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 )
 
@@ -16,8 +15,6 @@ INSERT INTO click_events
     (short_code, user_id, clicked_at, ip, user_agent, referer)
 VALUES (?, ?, ?, ?, ?, ?)
 `
-
-var _ application.BatchWriter = (*Writer)(nil)
 
 type Writer struct {
 	conn driver.Conn
