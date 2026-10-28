@@ -10,6 +10,7 @@ import (
 	core_errors "github.com/dyingvoid/shorturl/analytics/internal/core/errors"
 )
 
+// TODO: to config, use envconfig look at the examples in other config.go
 const (
 	defaultLimit   = 100
 	defaultTimeout = 5 * time.Second
