@@ -1,14 +1,19 @@
 -include user/.env
 -include url/.env
 -include gateway/.env
+-include analytics/.env
 export
 
 export USER_PROJECT_ROOT=$(shell pwd)/user
 export URL_PROJECT_ROOT=$(shell pwd)/url
 export GATEWAY_PROJECT_ROOT=$(shell pwd)/gateway
+export ANALYTICS_PROJECT_ROOT=$(shell pwd)/analytics
 export PROJECT_ROOT=$(shell pwd)
 
-.PHONY: proto-gen run test lint up down migrate-up migrate-down url-run gateway-run
+.PHONY: proto-gen run test lint up down \
+        migrate-up migrate-down \
+        clickhouse-migrate-up clickhouse-migrate-down clickhouse-migrate-action clickhouse-migrate-create \
+        url-run gateway-run
 
 env-cleanup:
 	@read -p "Clean up volume? [y/N]: " ans; \
@@ -37,25 +42,13 @@ up:
 	docker compose up -d
 
 down:
-	docker compose down
+	docker compose down --remove-orphans
 
 env-port-forward:
 	@docker compose up -d port-forwarder
 
 env-port-close:
 	@docker compose down port-forwarder
-
-migrate-create:
-	@if [ -z "$(seq)" ]; then \
-		echo "seq parameter is not specified. Example: make migrate-create seq=init"; \
-		exit 1; \
-	fi;
-
-	@docker compose run --rm migrate \
-		create \
-		-ext sql \
-		-dir /migrations \
-		-seq "$(seq)"
 
 migrate-up:
 	@make migrate-action action=up
@@ -72,6 +65,45 @@ migrate-action:
 		-path /migrations \
 		-database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable \
 		"$(action)"
+
+migrate-create:
+	@if [ -z "$(seq)" ]; then \
+		echo "seq parameter is not specified. Example: make migrate-create seq=init"; \
+		exit 1; \
+	fi;
+
+	@docker compose run --rm migrate \
+		create \
+		-ext sql \
+		-dir /migrations \
+		-seq "$(seq)"
+
+clickhouse-migrate-up:
+	@make clickhouse-migrate-action action=up
+
+clickhouse-migrate-down:
+	@make clickhouse-migrate-action action=down
+
+clickhouse-migrate-action:
+	@if [ -z "$(action)" ]; then \
+		echo "action is not specified. Example: make clickhouse-migrate-action action=up"; \
+		exit 1; \
+	fi
+	@docker compose run --rm clickhouse-migrate \
+		-path=/migrations \
+		-database "clickhouse://clickhouse:9000?username=${CLICKHOUSE_USERNAME}&password=${CLICKHOUSE_PASSWORD}&database=${CLICKHOUSE_DATABASE}&x-multi-statement=true" \
+		"$(action)"
+
+clickhouse-migrate-create:
+	@if [ -z "$(seq)" ]; then \
+		echo "seq parameter is not specified. Example: make clickhouse-migrate-create seq=create-events"; \
+		exit 1; \
+	fi
+	@docker compose run --rm clickhouse-migrate \
+		create \
+		-ext sql \
+		-dir /migrations \
+		-seq "$(seq)"
 
 swagger-gen:
 	@docker compose run --rm swagger \
