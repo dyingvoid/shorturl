@@ -4,13 +4,13 @@ import (
 	"context"
 )
 
-type Delivery[T any] struct {
-	Value T
-	Ack   func(context.Context) error
+type MsgBatch[T any] struct {
+	Messages []T
+	Ack      func(context.Context) error
 }
 
 type Fetcher[T any] interface {
-	Fetch(ctx context.Context, limit int) ([]Delivery[T], error)
+	Fetch(ctx context.Context, limit int) (MsgBatch[T], error)
 }
 
 type Writer[T any] interface {

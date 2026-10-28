@@ -70,7 +70,7 @@ func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
 	tctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
-	deliveries, err := f.fetcher.Fetch(tctx, f.limit)
+	batch, err := f.fetcher.Fetch(tctx, f.limit)
 	switch {
 	case err == nil:
 	case errors.Is(err, core_errors.ErrParseRecord):
@@ -82,26 +82,15 @@ func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
 		f.log.Error("fetch records", "error", err)
 	}
 
-	if len(deliveries) == 0 {
+	if len(batch.Messages) == 0 {
 		return nil
 	}
 
-	values := make([]T, 0, len(deliveries))
-	for _, delivery := range deliveries {
-		values = append(values, delivery.Value)
-	}
-
-	if err := f.writer.WriteBatch(ctx, values); err != nil {
+	if err := f.writer.WriteBatch(ctx, batch.Messages); err != nil {
 		return fmt.Errorf("write batch: %w", err)
 	}
 
-	for _, delivery := range deliveries {
-		if err := delivery.Ack(ctx); err != nil {
-			f.log.Error("ack record", "error", err)
-		}
-	}
-
-	f.log.Debug("batch processed", "records", len(deliveries))
-
+	batch.Ack(ctx)
+	f.log.Debug("batch processed", "records", len(batch.Messages))
 	return nil
 }
