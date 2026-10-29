@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dyingvoid/shorturl/analytics/internal/config"
 	"github.com/dyingvoid/shorturl/analytics/internal/core"
@@ -29,17 +30,10 @@ func run(logger *slog.Logger) error {
 	)
 	defer stop()
 
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
+	cfg := config.NewMust()
+	time.Local = cfg.TimeZone
 
-	kafkaConfig, err := kafkainfra.NewConfig(
-		cfg.KafkaBrokers, cfg.KafkaTopic, cfg.KafkaGroupID,
-	)
-	if err != nil {
-		return fmt.Errorf("create kafka config: %w", err)
-	}
+	kafkaConfig := kafkainfra.NewMust()
 
 	reader, err := kafkainfra.NewReader(kafkaConfig, logger)
 	if err != nil {
@@ -51,15 +45,7 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
-	clickHouseConfig, err := clickhouseinfra.NewConfig(
-		cfg.ClickHouseAddr,
-		cfg.ClickHouseDatabase,
-		cfg.ClickHouseUsername,
-		cfg.ClickHousePassword,
-	)
-	if err != nil {
-		return fmt.Errorf("create clickhouse config: %w", err)
-	}
+	clickHouseConfig := clickhouseinfra.NewMust()
 
 	writer, err := clickhouseinfra.NewWriter(ctx, clickHouseConfig)
 	if err != nil {
@@ -71,20 +57,22 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
+	coreConfig := core.NewMust()
+
 	consumer := core.NewAnalyticsForwarder(
 		logger,
 		reader,
 		writer,
-		cfg.BatchSize,
-		cfg.BatchFlushInterval,
+		coreConfig.BatchSize,
+		coreConfig.BatchFlushInterval,
 	)
 
 	logger.Info(
 		"analytics consumer starting",
-		"kafka_topic", cfg.KafkaTopic,
-		"kafka_group", cfg.KafkaGroupID,
-		"batch_size", cfg.BatchSize,
-		"batch_flush_interval", cfg.BatchFlushInterval,
+		"kafka_topic", kafkaConfig.Topic,
+		"kafka_group", kafkaConfig.GroupID,
+		"batch_size", coreConfig.BatchSize,
+		"batch_flush_interval", coreConfig.BatchFlushInterval,
 	)
 
 	if err := consumer.Run(ctx); err != nil {

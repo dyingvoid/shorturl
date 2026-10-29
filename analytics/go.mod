@@ -5,6 +5,7 @@ go 1.27.3
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/IBM/sarama v1.61.1
+	github.com/kelseyhightower/envconfig v1.4.0
 )
 
 require (

@@ -1,34 +1,33 @@
 package clickhouse
 
 import (
-	"errors"
-	"strings"
+	"fmt"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	Addr     string
-	Database string
-	Username string
-	Password string
+	Addr     string `envconfig:"CLICKHOUSE_ADDR" default:"localhost:9000"`
+	Database string `envconfig:"CLICKHOUSE_DATABASE" default:"analytics"`
+	Username string `envconfig:"CLICKHOUSE_USERNAME" default:"default"`
+	Password string `envconfig:"CLICKHOUSE_PASSWORD"`
 }
 
-func NewConfig(addr, database, username, password string) (Config, error) {
-	cfg := Config{
-		Addr:     strings.TrimSpace(addr),
-		Database: strings.TrimSpace(database),
-		Username: strings.TrimSpace(username),
-		Password: password,
+func New() (Config, error) {
+	var config Config
+	if err := envconfig.Process("", &config); err != nil {
+		return Config{}, fmt.Errorf("process envconfig: %w", err)
 	}
 
-	if cfg.Addr == "" {
-		return Config{}, errors.New("clickhouse: address is required")
-	}
-	if cfg.Database == "" {
-		return Config{}, errors.New("clickhouse: database is required")
-	}
-	if cfg.Username == "" {
-		return Config{}, errors.New("clickhouse: username is required")
+	return config, nil
+}
+
+func NewMust() Config {
+	config, err := New()
+	if err != nil {
+		err = fmt.Errorf("get config: %w", err)
+		panic(err)
 	}
 
-	return cfg, nil
+	return config
 }
