@@ -34,7 +34,7 @@ type RegisterResponse struct {
 // @Failure 400 {object} core_http_response.ErrorResponse
 // @Failure 409 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /auth/register [post]
+// @Router /api/v1/auth/register [post]
 func (h *AuthHTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

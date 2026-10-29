@@ -67,7 +67,7 @@ func main() {
 		usersClient, redisCache, linksRepository, userViewProducer, log,
 	)
 
-	s := server.New(cfg, log)
+	s := server.New(cfg, log, "url")
 	urlv1.RegisterURLServiceServer(s.GRPC(), handler.New(urlService))
 
 	if err := s.Run(ctx); err != nil {

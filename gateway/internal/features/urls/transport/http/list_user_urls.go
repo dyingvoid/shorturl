@@ -37,7 +37,7 @@ type URLItem struct {
 // @Failure 400 {object} core_http_response.ErrorResponse
 // @Failure 401 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /urls [get]
+// @Router /api/v1/urls [get]
 func (h *URLsHTTPHandler) ListUserURLs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

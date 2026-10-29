@@ -19,9 +19,12 @@ func (s *Server) RegisterSwagger() {
 	s.router.HandleFunc(
 		"/swagger/doc.json",
 		func(w http.ResponseWriter, r *http.Request) {
+			spec := *docs.SwaggerInfo
+			spec.Host = r.Host
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(docs.SwaggerInfo.ReadDoc()))
+			_, _ = w.Write([]byte(spec.ReadDoc()))
 		},
 	)
 }

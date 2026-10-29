@@ -19,7 +19,7 @@ import (
 // @Success 204 "No Content"
 // @Failure 401 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /auth/logout [post]
+// @Router /api/v1/auth/logout [post]
 func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

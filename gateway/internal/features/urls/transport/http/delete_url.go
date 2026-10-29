@@ -24,7 +24,7 @@ import (
 // @Failure 403 {object} core_http_response.ErrorResponse
 // @Failure 404 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /urls/{code} [delete]
+// @Router /api/v1/urls/{code} [delete]
 func (h *URLsHTTPHandler) DeleteURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

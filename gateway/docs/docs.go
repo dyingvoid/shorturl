@@ -15,7 +15,78 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/login": {
+        "/api/v1/analytics/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns click analytics for a short URL owned by the authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Get analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Short code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of days to aggregate",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_analytics_transport_http.GetAnalyticsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
             "post": {
                 "description": "Validates credentials and returns an access and refresh token pair.",
                 "consumes": [
@@ -67,7 +138,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -101,7 +172,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/refresh": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "description": "Exchanges a valid refresh token for a new access token.",
                 "consumes": [
@@ -153,7 +224,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/register": {
+        "/api/v1/auth/register": {
             "post": {
                 "description": "Creates a user account and returns its identifier.",
                 "consumes": [
@@ -205,7 +276,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/urls": {
+        "/api/v1/urls": {
             "get": {
                 "security": [
                     {
@@ -317,7 +388,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/urls/{code}": {
+        "/api/v1/urls/{code}": {
             "delete": {
                 "security": [
                     {
@@ -428,6 +499,51 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.DayClicks": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.GetAnalyticsResponse": {
+            "type": "object",
+            "properties": {
+                "clicks_by_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_features_analytics_transport_http.DayClicks"
+                    }
+                },
+                "short_code": {
+                    "type": "string"
+                },
+                "top_referers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_features_analytics_transport_http.RefererClicks"
+                    }
+                },
+                "total_clicks": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.RefererClicks": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer"
+                },
+                "referer": {
                     "type": "string"
                 }
             }
@@ -559,8 +675,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8090",
-	BasePath:         "/api/v1",
+	Host:             "",
+	BasePath:         "/",
 	Schemes:          []string{"http"},
 	Title:            "ShortURL Gateway API",
 	Description:      "HTTP gateway for authentication and short URL management.",

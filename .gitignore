@@ -35,7 +35,5 @@ go.work.sum
 *.sln
 *.swp
 
-.dsh/
 opencode.json
 out/
-.local.txt

@@ -1,4 +1,36 @@
+x-migrate-common: &migrate-common
+  image: migrate/migrate:v4.19.1
+
 services:
+  swagger:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile_inline: |
+        FROM golang:1.27.3-alpine
+        RUN apk add --no-cache git
+        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
+        WORKDIR /code
+        ENTRYPOINT ["swag"]
+    volumes:
+      - ${GATEWAY_PROJECT_ROOT}:/code
+
+  migrate:
+    <<: *migrate-common
+    volumes:
+      - ${USER_PROJECT_ROOT}/migrations:/migrations
+
+  clickhouse-migrate:
+    <<: *migrate-common
+    volumes:
+      - ${ANALYTICS_PROJECT_ROOT}/migrations/clickhouse:/migrations
+
+  port-forwarder:
+    image: alpine/socat:1.8.0.3
+    container_name: todo-portforwarder
+    command: tcp-listen:5432,fork,reuseaddr tcp-connect:postgres:5432
+    ports:
+      - "127.0.0.1:5432:5432"
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -9,29 +41,6 @@ services:
       - ${USER_PROJECT_ROOT}/out/postgres_data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  migrate:
-    image: migrate/migrate:v4.19.1
-    volumes:
-      - ${USER_PROJECT_ROOT}/migrations:/migrations
-
-  port-forwarder:
-    image: alpine/socat:1.8.0.3
-    container_name: todo-portforwarder
-    command: tcp-listen:5432,fork,reuseaddr tcp-connect:postgres:5432
-    ports:
-      - "127.0.0.1:5432:5432"
-
-  redis:
-    image: redis:7-alpine
-    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -47,18 +56,32 @@ services:
     volumes:
       - ${URL_PROJECT_ROOT}/out/mongo_data:/data/db
 
-  swagger:
-    build:
-      context: ${PROJECT_ROOT}
-      dockerfile_inline: |
-        FROM golang:1.27.3-alpine
-        RUN apk add --no-cache git
-        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
-        WORKDIR /code
-        ENTRYPOINT ["swag"]
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
-      - ${GATEWAY_PROJECT_ROOT}:/code
-  
+      - ${ANALYTICS_PROJECT_ROOT}/out/clickhouse_data:/var/lib/clickhouse
+
+  redis:
+    image: redis:7-alpine
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   kafka:
     image: apache/kafka:4.4.0
     ports:
@@ -75,7 +98,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
-
 volumes:
   postgres_data:
-  
+  code:
+  clickhouse_data:
+  mongo_data:

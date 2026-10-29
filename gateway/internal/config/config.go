@@ -7,10 +7,12 @@ import (
 )
 
 type Config struct {
-	UsersServiceHost string `envconfig:"USER_SERVICE_HOST" default:"localhost"`
-	UsersServicePort int    `envconfig:"USER_SERVICE_PORT" default:"50051"`
-	URLServiceHost   string `envconfig:"URL_SERVICE_HOST" default:"localhost"`
-	URLServicePort   int    `envconfig:"URL_SERVICE_PORT" default:"50052"`
+	UsersServiceHost     string `envconfig:"USERS_SERVICE_HOST" default:"localhost"`
+	UsersServicePort     int    `envconfig:"USERS_SERVICE_PORT" default:"50051"`
+	URLServiceHost       string `envconfig:"URL_SERVICE_HOST" default:"localhost"`
+	URLServicePort       int    `envconfig:"URL_SERVICE_PORT" default:"50052"`
+	AnalyticsServiceHost string `envconfig:"ANALYTICS_SERVICE_HOST" default:"localhost"`
+	AnalyticsServicePort int    `envconfig:"ANALYTICS_SERVICE_PORT" default:"50053"`
 }
 
 func New() (Config, error) {
@@ -37,4 +39,8 @@ func (c Config) UsersServiceAddr() string {
 
 func (c Config) URLServiceAddr() string {
 	return fmt.Sprintf("%s:%d", c.URLServiceHost, c.URLServicePort)
+}
+
+func (c Config) AnalyticsServiceAddr() string {
+	return fmt.Sprintf("%s:%d", c.AnalyticsServiceHost, c.AnalyticsServicePort)
 }

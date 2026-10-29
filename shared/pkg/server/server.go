@@ -16,6 +16,7 @@ type Server struct {
 	grpc *grpc.Server
 	cfg  Config
 	log  *slog.Logger
+	id string
 }
 
 type Config interface {
@@ -23,7 +24,7 @@ type Config interface {
 	ShutdownTimeout() time.Duration
 }
 
-func New(cfg Config, log *slog.Logger) *Server {
+func New(cfg Config, log *slog.Logger, id string) *Server {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			RequestID(),
@@ -39,6 +40,7 @@ func New(cfg Config, log *slog.Logger) *Server {
 		grpc: grpcServer,
 		cfg:  cfg,
 		log:  log,
+		id: id,
 	}
 }
 
@@ -57,7 +59,7 @@ func (s *Server) Run(ctx context.Context) error {
 	go func() {
 		defer close(errCh)
 
-		s.log.Warn("server starting", "port", s.cfg.Port())
+		s.log.Warn("server starting", "port", s.cfg.Port(), "id", s.id)
 
 		err := s.grpc.Serve(lis)
 		if err != nil && !errors.Is(err, grpc.ErrServerStopped) {
