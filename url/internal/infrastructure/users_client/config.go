@@ -8,9 +8,9 @@ import (
 )
 
 type Config struct {
-	Host           string        `envconfig:"USERS_SERVICE_HOST" default:"localhost"`
-	Port           int           `envconfig:"USERS_SERVICE_PORT" required:"true"`
-	RequestTimeout time.Duration `envconfig:"USERS_SERVICE_TIMEOUT" default:"5s"`
+	Host           string        `envconfig:"USER_SERVICE_HOST" default:"localhost"`
+	Port           int           `envconfig:"USER_SERVICE_PORT" required:"true"`
+	RequestTimeout time.Duration `envconfig:"USER_SERVICE_TIMEOUT" default:"5s"`
 }
 
 func (c Config) Addr() string {

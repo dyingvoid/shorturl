@@ -1,4 +1,4 @@
-package links_mongo_repository
+package mongo_repository_links
 
 import (
 	"time"

@@ -63,6 +63,9 @@ message URLItem {
 
 message RedirectRequest {
   string short_code = 1;
+  string ip = 2;
+  string user_agent = 3;
+  string referer = 4;
 }
 
 message RedirectResponse {

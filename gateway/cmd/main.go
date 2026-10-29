@@ -14,6 +14,7 @@ import (
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,7 +25,7 @@ import (
 // @title ShortURL Gateway API
 // @version 1.0
 // @description HTTP gateway for authentication and short URL management.
-// @host localhost:8082
+// @host localhost:8090
 // @BasePath /api/v1
 // @schemes http
 // @securityDefinitions.apikey BearerAuth
@@ -32,6 +33,7 @@ import (
 // @name Authorization
 // @description Access token: "Bearer <token>".
 func main() {
+	// TODO: dynamic swagger registration (port is static rn, not from env)
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
 	)
@@ -45,6 +47,7 @@ func main() {
 	usersConn, err := grpc.NewClient(
 		cfg.UsersServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
 	)
 	if err != nil {
 		log.Error("init users service client", "error", err)
@@ -55,6 +58,7 @@ func main() {
 	urlsConn, err := grpc.NewClient(
 		cfg.URLServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
 	)
 	if err != nil {
 		log.Error("init URL service client", "error", err)

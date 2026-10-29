@@ -6,6 +6,7 @@ import (
 	"time"
 
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -20,6 +21,7 @@ func Connect(_ context.Context, cfg Config) (*Client, error) {
 	conn, err := grpc.NewClient(
 		cfg.Addr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect users service: %w", err)
