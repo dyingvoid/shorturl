@@ -48,6 +48,7 @@ type URLService interface {
 	Redirect(
 		ctx context.Context,
 		shortCode string,
+		userView domain.UserView,
 	) (types.Sourced[string], error)
 }
 

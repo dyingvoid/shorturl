@@ -13,7 +13,7 @@ export PROJECT_ROOT=$(shell pwd)
 .PHONY: proto-gen run test lint up down \
         migrate-up migrate-down \
         clickhouse-migrate-up clickhouse-migrate-down clickhouse-migrate-action clickhouse-migrate-create \
-        url-run gateway-run
+        url-run gateway-run analytics-run run-all
 
 env-cleanup:
 	@read -p "Clean up volume? [y/N]: " ans; \
@@ -35,6 +35,9 @@ run:
 
 test:
 	go test -race -v ./user/...
+
+test-int:
+	go test -count=1 -timeout=15m -tags=integration ./gateway/integration/...
 
 lint:
 	golangci-lint run ./user/...

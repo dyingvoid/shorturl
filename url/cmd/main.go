@@ -12,8 +12,9 @@ import (
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
 	"github.com/dyingvoid/urlshort/url/internal/config"
 	"github.com/dyingvoid/urlshort/url/internal/handler"
+	infrastructure_kafka "github.com/dyingvoid/urlshort/url/internal/infrastructure/kafka"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
-	links_mongo_repository "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/repository"
+	mongo_repository_links "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/links_repository"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/users_client"
 	"github.com/dyingvoid/urlshort/url/internal/service"
@@ -30,11 +31,12 @@ func main() {
 	log := logger.Init(logger.NewMust())
 	log.Warn("application starting")
 
-	mongoDB, err := mongo.Connect(ctx, mongo.NewMust())
+	mongoCfg := mongo.NewMust()
+	mongoClient, err := mongo.Connect(ctx, mongoCfg)
 	if err != nil {
 		panic(err)
 	}
-	defer mongoDB.Client().Disconnect(ctx)
+	defer mongoClient.Disconnect(ctx)
 
 	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
@@ -48,14 +50,21 @@ func main() {
 	}
 	defer usersClient.Close()
 
+	kafkaCfg := infrastructure_kafka.NewMust()
+	userViewProducer, err := infrastructure_kafka.NewUserViewProducer(log, kafkaCfg)
+	if err != nil {
+		panic(err)
+	}
+	defer userViewProducer.Close()
+
 	redisCache := redis.NewCache(redisClient, log)
-	linksRepository := links_mongo_repository.NewLinksRepository(mongoDB)
+	linksRepository := mongo_repository_links.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
 		panic(err)
 	}
 	urlService := service.New(
 		cfg.URL, cfg.CreateURLAttempts, cfg.LinkCacheTTL,
-		usersClient, redisCache, linksRepository,
+		usersClient, redisCache, linksRepository, userViewProducer, log,
 	)
 
 	s := server.New(cfg, log, "url")

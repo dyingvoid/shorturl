@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -31,6 +32,18 @@ func newTestService(
 ) *service.Service {
 	t.Helper()
 
+	return newTestServiceWithProducer(t, usersService, cache, links, nil)
+}
+
+func newTestServiceWithProducer(
+	t *testing.T,
+	usersService service.UsersService,
+	cache service.Cache,
+	links service.LinksRepository,
+	producer service.Producer,
+) *service.Service {
+	t.Helper()
+
 	return service.New(
 		testBaseURL,
 		testCreateRetries,
@@ -38,6 +51,8 @@ func newTestService(
 		usersService,
 		cache,
 		links,
+		producer,
+		slog.New(slog.DiscardHandler),
 	)
 }
 
