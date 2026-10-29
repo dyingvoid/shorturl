@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -15,7 +16,6 @@ import (
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
 	urlclient "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/url_client"
-	"github.com/dyingvoid/shorturl/analytics/internal/service"
 	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
 )
@@ -31,7 +31,9 @@ func main() {
 
 func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(
-		context.Background(), syscall.SIGINT, syscall.SIGTERM,
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
 	)
 	defer stop()
 
@@ -39,17 +41,6 @@ func run(logger *slog.Logger) error {
 	time.Local = cfg.TimeZone
 
 	kafkaConfig := kafkainfra.NewMust()
-
-	reader, err := kafkainfra.NewReader(kafkaConfig, logger)
-	if err != nil {
-		return fmt.Errorf("create kafka reader: %w", err)
-	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			logger.Error("close kafka reader", "error", err)
-		}
-	}()
-
 	clickHouseConfig := clickhouseinfra.NewMust()
 
 	clickHouseConn, err := clickhouseinfra.Connect(ctx, clickHouseConfig)
@@ -62,8 +53,6 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
-	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
-
 	urlClient, err := urlclient.Connect(urlclient.NewMust())
 	if err != nil {
 		return fmt.Errorf("create url client: %w", err)
@@ -74,6 +63,17 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
+	reader, err := kafkainfra.NewReader(kafkaConfig, logger)
+	if err != nil {
+		return fmt.Errorf("create kafka reader: %w", err)
+	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logger.Error("close kafka reader", "error", err)
+		}
+	}()
+
+	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
 	coreConfig := core.NewMust()
 
 	consumer := core.NewAnalyticsForwarder(
@@ -84,10 +84,17 @@ func run(logger *slog.Logger) error {
 		coreConfig.BatchFlushInterval,
 	)
 
-	analyticsService := service.New(urlClient, analyticsRepository)
+	analyticsService := core.NewService(
+		coreConfig,
+		urlClient,
+		analyticsRepository,
+	)
 
 	s := server.New(cfg, logger, "analytics")
-	analyticsv1.RegisterAnalyticsServiceServer(s.GRPC(), handler.New(analyticsService))
+	analyticsv1.RegisterAnalyticsServiceServer(
+		s.GRPC(),
+		handler.New(analyticsService),
+	)
 
 	logger.Info(
 		"analytics starting",
@@ -95,27 +102,77 @@ func run(logger *slog.Logger) error {
 		"kafka_group", kafkaConfig.GroupID,
 		"batch_size", coreConfig.BatchSize,
 		"batch_flush_interval", coreConfig.BatchFlushInterval,
+		"default_days", coreConfig.DefaultDays,
+		"max_days", coreConfig.MaxDays,
+		"top_referers", coreConfig.TopReferers,
 	)
 
-	runCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	serverCtx, stopServer := context.WithCancel(context.Background())
+	defer stopServer()
 
-	errCh := make(chan error, 2)
+	consumerCtx, stopConsumer := context.WithCancel(context.Background())
+	defer stopConsumer()
+
+	serverErrCh := make(chan error, 1)
+	consumerErrCh := make(chan error, 1)
 
 	go func() {
-		errCh <- consumer.Run(runCtx)
+		serverErrCh <- s.Run(serverCtx)
 	}()
 
 	go func() {
-		errCh <- s.Run(runCtx)
+		consumerErrCh <- consumer.Run(consumerCtx)
 	}()
 
-	err = <-errCh
-	cancel()
+	var (
+		runErr       error
+		serverDone   bool
+		consumerDone bool
+	)
 
-	if err != nil {
-		return fmt.Errorf("run analytics: %w", err)
+	select {
+	case <-ctx.Done():
+		logger.Info("shutdown signal received")
+
+	case err := <-serverErrCh:
+		serverDone = true
+		runErr = err
+
+	case err := <-consumerErrCh:
+		consumerDone = true
+		runErr = err
 	}
 
+	logger.Info("stopping analytics server")
+	stopServer()
+
+	if !serverDone {
+		if err := <-serverErrCh; err != nil &&
+			!errors.Is(err, context.Canceled) &&
+			runErr == nil {
+			runErr = err
+		}
+	}
+
+	logger.Info("stopping analytics consumer")
+	stopConsumer()
+
+	if !consumerDone {
+		if err := <-consumerErrCh; err != nil &&
+			!errors.Is(err, context.Canceled) &&
+			runErr == nil {
+			runErr = err
+		}
+	}
+
+	if errors.Is(runErr, context.Canceled) {
+		runErr = nil
+	}
+
+	if runErr != nil {
+		return fmt.Errorf("run analytics: %w", runErr)
+	}
+
+	logger.Info("analytics stopped gracefully")
 	return nil
 }

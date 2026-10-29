@@ -1,4 +1,4 @@
-package service
+package core
 
 import (
 	"context"
@@ -8,12 +8,14 @@ import (
 )
 
 type Service struct {
+	cfg       Config
 	urls      URLService
 	analytics AnalyticsRepository
 }
 
-func New(urls URLService, analytics AnalyticsRepository) *Service {
+func NewService(cfg Config, urls URLService, analytics AnalyticsRepository) *Service {
 	return &Service{
+		cfg:       cfg,
 		urls:      urls,
 		analytics: analytics,
 	}

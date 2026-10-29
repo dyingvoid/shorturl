@@ -1,4 +1,4 @@
-package service
+package core
 
 import (
 	"context"
@@ -8,12 +8,6 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 	domain_errors "github.com/dyingvoid/shorturl/analytics/internal/domain/errors"
 	"golang.org/x/sync/errgroup"
-)
-
-const (
-	defaultDays = 30
-	maxDays     = 365
-	topReferers = 10
 )
 
 func (s *Service) GetAnalytics(
@@ -30,10 +24,10 @@ func (s *Service) GetAnalytics(
 	}
 
 	if days <= 0 {
-		days = defaultDays
+		days = s.cfg.DefaultDays
 	}
-	if days > maxDays {
-		return domain.Analytics{}, fmt.Errorf("days must not exceed %d: %w", maxDays, domain_errors.ErrInvalidArgument)
+	if days > s.cfg.MaxDays {
+		return domain.Analytics{}, fmt.Errorf("days must not exceed %d: %w", s.cfg.MaxDays, domain_errors.ErrInvalidArgument)
 	}
 
 	link, err := s.urls.GetURL(ctx, shortCode)
@@ -76,7 +70,7 @@ func (s *Service) GetAnalytics(
 	})
 
 	g.Go(func() error {
-		value, err := s.analytics.TopReferers(gctx, shortCode, from, topReferers)
+		value, err := s.analytics.TopReferers(gctx, shortCode, from, s.cfg.TopReferers)
 		if err != nil {
 			return fmt.Errorf("failed to get top referers: %w", err)
 		}
