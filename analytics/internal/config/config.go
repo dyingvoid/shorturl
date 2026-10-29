@@ -9,7 +9,9 @@ import (
 )
 
 type Config struct {
-	TimeZone *time.Location
+	TimeZone              *time.Location
+	ServerPort            int           `envconfig:"ANALYTICS_SERVICE_PORT" default:"50053"`
+	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 
 func New() (Config, error) {
@@ -40,4 +42,12 @@ func NewMust() Config {
 	}
 
 	return config
+}
+
+func (c Config) Port() int {
+	return c.ServerPort
+}
+
+func (c Config) ShutdownTimeout() time.Duration {
+	return c.ServerShutdownTimeout
 }

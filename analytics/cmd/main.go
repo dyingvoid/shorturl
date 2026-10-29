@@ -11,8 +11,13 @@ import (
 
 	"github.com/dyingvoid/shorturl/analytics/internal/config"
 	"github.com/dyingvoid/shorturl/analytics/internal/core"
+	"github.com/dyingvoid/shorturl/analytics/internal/handler"
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
+	urlclient "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/url_client"
+	"github.com/dyingvoid/shorturl/analytics/internal/service"
+	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/server"
 )
 
 func main() {
@@ -47,13 +52,25 @@ func run(logger *slog.Logger) error {
 
 	clickHouseConfig := clickhouseinfra.NewMust()
 
-	writer, err := clickhouseinfra.NewWriter(ctx, clickHouseConfig)
+	clickHouseConn, err := clickhouseinfra.Connect(ctx, clickHouseConfig)
 	if err != nil {
-		return fmt.Errorf("create clickhouse writer: %w", err)
+		return fmt.Errorf("connect clickhouse: %w", err)
 	}
 	defer func() {
-		if err := writer.Close(); err != nil {
-			logger.Error("close clickhouse writer", "error", err)
+		if err := clickHouseConn.Close(); err != nil {
+			logger.Error("close clickhouse connection", "error", err)
+		}
+	}()
+
+	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
+
+	urlClient, err := urlclient.Connect(urlclient.NewMust())
+	if err != nil {
+		return fmt.Errorf("create url client: %w", err)
+	}
+	defer func() {
+		if err := urlClient.Close(); err != nil {
+			logger.Error("close url client", "error", err)
 		}
 	}()
 
@@ -62,21 +79,42 @@ func run(logger *slog.Logger) error {
 	consumer := core.NewAnalyticsForwarder(
 		logger,
 		reader,
-		writer,
+		analyticsRepository,
 		coreConfig.BatchSize,
 		coreConfig.BatchFlushInterval,
 	)
 
+	analyticsService := service.New(urlClient, analyticsRepository)
+
+	s := server.New(cfg, logger, "analytics")
+	analyticsv1.RegisterAnalyticsServiceServer(s.GRPC(), handler.New(analyticsService))
+
 	logger.Info(
-		"analytics consumer starting",
+		"analytics starting",
 		"kafka_topic", kafkaConfig.Topic,
 		"kafka_group", kafkaConfig.GroupID,
 		"batch_size", coreConfig.BatchSize,
 		"batch_flush_interval", coreConfig.BatchFlushInterval,
 	)
 
-	if err := consumer.Run(ctx); err != nil {
-		return fmt.Errorf("run consumer: %w", err)
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	errCh := make(chan error, 2)
+
+	go func() {
+		errCh <- consumer.Run(runCtx)
+	}()
+
+	go func() {
+		errCh <- s.Run(runCtx)
+	}()
+
+	err = <-errCh
+	cancel()
+
+	if err != nil {
+		return fmt.Errorf("run analytics: %w", err)
 	}
 
 	return nil
