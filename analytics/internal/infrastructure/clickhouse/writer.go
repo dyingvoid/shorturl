@@ -10,12 +10,6 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 )
 
-const insertEventsQuery = `
-INSERT INTO click_events
-    (short_code, user_id, clicked_at, ip, user_agent, referer)
-VALUES (?, ?, ?, ?, ?, ?)
-`
-
 type Writer struct {
 	conn driver.Conn
 }
@@ -49,7 +43,12 @@ func (w *Writer) WriteBatch(ctx context.Context, events []domain.ClickEvent) err
 		return nil
 	}
 
-	batch, err := w.conn.PrepareBatch(ctx, insertEventsQuery)
+	q := `
+	INSERT INTO click_events
+		(short_code, user_id, clicked_at, ip, user_agent, referer)
+	VALUES (?, ?, ?, ?, ?, ?)
+	`
+	batch, err := w.conn.PrepareBatch(ctx, q)
 	if err != nil {
 		return fmt.Errorf("prepare batch: %w", err)
 	}

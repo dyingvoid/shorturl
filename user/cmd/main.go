@@ -55,7 +55,7 @@ func main() {
 		redisCache, log,
 	)
 
-	s := server.New(cfg, log)
+	s := server.New(cfg, log, "user")
 	userv1.RegisterUserServiceServer(s.GRPC(), handler.New(usersService))
 
 	if err := s.Run(ctx); err != nil {

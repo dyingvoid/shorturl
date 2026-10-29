@@ -21,6 +21,7 @@ env-cleanup:
 		docker compose down postgres port-forwarder && \
 		rm -rf ${USER_PROJECT_ROOT}/out/postgres_data && \
 		rm -rf ${URL_PROJECT_ROOT}/out/mongo_data && \
+		rm -rf ${ANALYTICS_PROJECT_ROOT}/out/clickhouse_data && \
 		echo "Volume has been cleaned up"; \
 	else \
 		echo "Clean up cancelled"; \
@@ -114,22 +115,28 @@ swagger-gen:
 		--parseDependency
 
 user-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${USER_PROJECT_ROOT} && \
+	@cd ${USER_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
 
 url-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${URL_PROJECT_ROOT} && \
+	@cd ${URL_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
 
 gateway-run:
-	@cd ${PROJECT_ROOT} && \
-	go work sync && \
-	cd ${GATEWAY_PROJECT_ROOT} && \
+	@cd ${GATEWAY_PROJECT_ROOT} && \
 	go fmt ./... && \
 	go run ./cmd
+
+analytics-run:
+	@cd ${ANALYTICS_PROJECT_ROOT} && \
+	go fmt ./... && \
+	go run ./cmd
+
+run-all: 
+	@$(MAKE) user-run & \
+	$(MAKE) url-run & \
+	$(MAKE) analytics-run & \
+	$(MAKE) gateway-run & \
+ 	wait 

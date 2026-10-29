@@ -2,19 +2,17 @@ x-migrate-common: &migrate-common
   image: migrate/migrate:v4.19.1
 
 services:
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-url_shortener}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  swagger:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile_inline: |
+        FROM golang:1.27.3-alpine
+        RUN apk add --no-cache git
+        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
+        WORKDIR /code
+        ENTRYPOINT ["swag"]
     volumes:
-      - ${USER_PROJECT_ROOT}/out/postgres_data:/var/lib/postgresql
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ${GATEWAY_PROJECT_ROOT}:/code
 
   migrate:
     <<: *migrate-common
@@ -33,13 +31,16 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
 
-  redis:
-    image: redis:7-alpine
-    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
-    ports:
-      - "6379:6379"
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-url_shortener}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ${USER_PROJECT_ROOT}/out/postgres_data:/var/lib/postgresql
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -55,17 +56,31 @@ services:
     volumes:
       - ${URL_PROJECT_ROOT}/out/mongo_data:/data/db
 
-  swagger:
-    build:
-      context: ${PROJECT_ROOT}
-      dockerfile_inline: |
-        FROM golang:1.27.3-alpine
-        RUN apk add --no-cache git
-        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
-        WORKDIR /code
-        ENTRYPOINT ["swag"]
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
-      - ${GATEWAY_PROJECT_ROOT}:/code
+      - ${ANALYTICS_PROJECT_ROOT}/out/clickhouse_data:/var/lib/clickhouse
+
+  redis:
+    image: redis:7-alpine
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: apache/kafka:4.4.0
@@ -86,3 +101,4 @@ services:
 volumes:
   postgres_data:
   code:
+  clickhouse_data:
