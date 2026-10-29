@@ -138,5 +138,4 @@ run-all:
 	@$(MAKE) user-run & \
 	$(MAKE) url-run & \
 	$(MAKE) analytics-run & \
-	$(MAKE) gateway-run & \
- 	wait 
+	$(MAKE) gateway-run

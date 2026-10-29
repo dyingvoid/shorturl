@@ -43,7 +43,7 @@ type RefererClicks struct {
 // @Failure 403 {object} core_http_response.ErrorResponse
 // @Failure 404 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /analytics/{code} [get]
+// @Router /api/v1/analytics/{code} [get]
 func (h *AnalyticsHTTPHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

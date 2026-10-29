@@ -9,10 +9,9 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8082",
-    "basePath": "/api/v1",
+    "basePath": "/",
     "paths": {
-        "/analytics/{code}": {
+        "/api/v1/analytics/{code}": {
             "get": {
                 "security": [
                     {
@@ -83,7 +82,7 @@
                 }
             }
         },
-        "/auth/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "description": "Validates credentials and returns an access and refresh token pair.",
                 "consumes": [
@@ -135,7 +134,7 @@
                 }
             }
         },
-        "/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -169,7 +168,7 @@
                 }
             }
         },
-        "/auth/refresh": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "description": "Exchanges a valid refresh token for a new access token.",
                 "consumes": [
@@ -221,7 +220,7 @@
                 }
             }
         },
-        "/auth/register": {
+        "/api/v1/auth/register": {
             "post": {
                 "description": "Creates a user account and returns its identifier.",
                 "consumes": [
@@ -273,7 +272,7 @@
                 }
             }
         },
-        "/urls": {
+        "/api/v1/urls": {
             "get": {
                 "security": [
                     {
@@ -385,7 +384,7 @@
                 }
             }
         },
-        "/urls/{code}": {
+        "/api/v1/urls/{code}": {
             "delete": {
                 "security": [
                     {

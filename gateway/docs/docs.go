@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/analytics/{code}": {
+        "/api/v1/analytics/{code}": {
             "get": {
                 "security": [
                     {
@@ -86,7 +86,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "description": "Validates credentials and returns an access and refresh token pair.",
                 "consumes": [
@@ -138,7 +138,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -172,7 +172,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/refresh": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "description": "Exchanges a valid refresh token for a new access token.",
                 "consumes": [
@@ -224,7 +224,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/register": {
+        "/api/v1/auth/register": {
             "post": {
                 "description": "Creates a user account and returns its identifier.",
                 "consumes": [
@@ -276,7 +276,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/urls": {
+        "/api/v1/urls": {
             "get": {
                 "security": [
                     {
@@ -388,7 +388,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/urls/{code}": {
+        "/api/v1/urls/{code}": {
             "delete": {
                 "security": [
                     {
@@ -675,8 +675,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8082",
-	BasePath:         "/api/v1",
+	Host:             "",
+	BasePath:         "/",
 	Schemes:          []string{"http"},
 	Title:            "ShortURL Gateway API",
 	Description:      "HTTP gateway for authentication and short URL management.",

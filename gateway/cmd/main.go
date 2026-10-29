@@ -26,8 +26,7 @@ import (
 // @title ShortURL Gateway API
 // @version 1.0
 // @description HTTP gateway for authentication and short URL management.
-// @host localhost:8082
-// @BasePath /api/v1
+// @BasePath /
 // @schemes http
 // @securityDefinitions.apikey BearerAuth
 // @in header

@@ -35,7 +35,7 @@ type LoginResponse struct {
 // @Failure 400 {object} core_http_response.ErrorResponse
 // @Failure 401 {object} core_http_response.ErrorResponse
 // @Failure 500 {object} core_http_response.ErrorResponse
-// @Router /auth/login [post]
+// @Router /api/v1/auth/login [post]
 func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

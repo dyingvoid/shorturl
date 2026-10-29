@@ -1,4 +1,4 @@
-basePath: /api/v1
+basePath: /
 definitions:
   github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse:
     properties:
@@ -108,7 +108,6 @@ definitions:
       short_code:
         type: string
     type: object
-host: localhost:8082
 info:
   contact: {}
   description: HTTP gateway for authentication and short URL management.
@@ -142,7 +141,7 @@ paths:
       summary: Redirect short URL
       tags:
       - urls
-  /analytics/{code}:
+  /api/v1/analytics/{code}:
     get:
       description: Returns click analytics for a short URL owned by the authenticated
         user.
@@ -189,7 +188,7 @@ paths:
       summary: Get analytics
       tags:
       - analytics
-  /auth/login:
+  /api/v1/auth/login:
     post:
       consumes:
       - application/json
@@ -223,7 +222,7 @@ paths:
       summary: Login user
       tags:
       - auth
-  /auth/logout:
+  /api/v1/auth/logout:
     post:
       description: Invalidates the session identified by the bearer token.
       produces:
@@ -244,7 +243,7 @@ paths:
       summary: Logout user
       tags:
       - auth
-  /auth/refresh:
+  /api/v1/auth/refresh:
     post:
       consumes:
       - application/json
@@ -278,7 +277,7 @@ paths:
       summary: Refresh access token
       tags:
       - auth
-  /auth/register:
+  /api/v1/auth/register:
     post:
       consumes:
       - application/json
@@ -312,7 +311,7 @@ paths:
       summary: Register user
       tags:
       - auth
-  /urls:
+  /api/v1/urls:
     get:
       description: Returns a cursor-paginated list of URLs owned by the authenticated
         user.
@@ -384,7 +383,7 @@ paths:
       summary: Create short URL
       tags:
       - urls
-  /urls/{code}:
+  /api/v1/urls/{code}:
     delete:
       description: Deletes a short URL owned by the authenticated user.
       parameters:
