@@ -12,6 +12,77 @@
     "host": "localhost:8082",
     "basePath": "/api/v1",
     "paths": {
+        "/analytics/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns click analytics for a short URL owned by the authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Get analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Short code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of days to aggregate",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_analytics_transport_http.GetAnalyticsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Validates credentials and returns an access and refresh token pair.",
@@ -425,6 +496,51 @@
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.DayClicks": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.GetAnalyticsResponse": {
+            "type": "object",
+            "properties": {
+                "clicks_by_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_features_analytics_transport_http.DayClicks"
+                    }
+                },
+                "short_code": {
+                    "type": "string"
+                },
+                "top_referers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_features_analytics_transport_http.RefererClicks"
+                    }
+                },
+                "total_clicks": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_features_analytics_transport_http.RefererClicks": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer"
+                },
+                "referer": {
                     "type": "string"
                 }
             }

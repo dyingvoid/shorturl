@@ -7,6 +7,35 @@ definitions:
       message:
         type: string
     type: object
+  internal_features_analytics_transport_http.DayClicks:
+    properties:
+      clicks:
+        type: integer
+      date:
+        type: string
+    type: object
+  internal_features_analytics_transport_http.GetAnalyticsResponse:
+    properties:
+      clicks_by_day:
+        items:
+          $ref: '#/definitions/internal_features_analytics_transport_http.DayClicks'
+        type: array
+      short_code:
+        type: string
+      top_referers:
+        items:
+          $ref: '#/definitions/internal_features_analytics_transport_http.RefererClicks'
+        type: array
+      total_clicks:
+        type: integer
+    type: object
+  internal_features_analytics_transport_http.RefererClicks:
+    properties:
+      clicks:
+        type: integer
+      referer:
+        type: string
+    type: object
   internal_features_auth_transport_http.LoginRequest:
     properties:
       email:
@@ -113,6 +142,53 @@ paths:
       summary: Redirect short URL
       tags:
       - urls
+  /analytics/{code}:
+    get:
+      description: Returns click analytics for a short URL owned by the authenticated
+        user.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      - default: 30
+        description: Number of days to aggregate
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_features_analytics_transport_http.GetAnalyticsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_dyingvoid_shorturl_gateway_internal_core_transport_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get analytics
+      tags:
+      - analytics
   /auth/login:
     post:
       consumes:

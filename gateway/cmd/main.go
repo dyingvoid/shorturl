@@ -9,9 +9,11 @@ import (
 	"github.com/dyingvoid/shorturl/gateway/internal/config"
 	core_http_middleware "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/middleware"
 	core_http_server "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/server"
+	analytics_transport_http "github.com/dyingvoid/shorturl/gateway/internal/features/analytics/transport/http"
 	auth_transport_http "github.com/dyingvoid/shorturl/gateway/internal/features/auth/transport/http"
 	urls_transport_http "github.com/dyingvoid/shorturl/gateway/internal/features/urls/transport/http"
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
+	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -62,11 +64,23 @@ func main() {
 	}
 	defer urlsConn.Close()
 
+	analyticsConn, err := grpc.NewClient(
+		cfg.AnalyticsServiceAddr(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Error("init analytics service client", "error", err)
+		os.Exit(1)
+	}
+	defer analyticsConn.Close()
+
 	usersService := userv1.NewUserServiceClient(usersConn)
 	urlsService := urlv1.NewURLServiceClient(urlsConn)
+	analyticsService := analyticsv1.NewAnalyticsServiceClient(analyticsConn)
 
 	authHTTP := auth_transport_http.NewAuthHTTPHandler(usersService)
 	urlsHTTP := urls_transport_http.NewURLsHTTPHandler(urlsService, authHTTP.AuthMiddleware)
+	analyticsHTTP := analytics_transport_http.NewAnalyticsHTTPHandler(analyticsService, authHTTP.AuthMiddleware)
 	urlRoutes := urlsHTTP.Routes()
 
 	srv := core_http_server.New(httpConfig, log,
@@ -81,6 +95,7 @@ func main() {
 	v1 := core_http_server.NewVersionRouter(core_http_server.V1)
 	v1.RegisterRoutes(authHTTP.Routes()...)
 	v1.RegisterRoutes(urlRoutes[0]...)
+	v1.RegisterRoutes(analyticsHTTP.Routes()...)
 
 	srv.RegisterAPIRoutes(v1)
 	srv.RegisterRoutes(urlRoutes[1]...)
