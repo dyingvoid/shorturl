@@ -13,12 +13,24 @@ type Config struct {
 	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50053"`
 	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
+	DefaultDays           int32         `envconfig:"DEFAULT_DAYS" default:"30"`
+	MaxDays               int32         `envconfig:"MAX_DAYS" default:"365"`
+	TopReferers           int           `envconfig:"TOP_REFERERS" default:"10"`
 }
 
 func New() (Config, error) {
 	var config Config
 	if err := envconfig.Process("ANALYTICS", &config); err != nil {
 		return Config{}, fmt.Errorf("process envconfig: %w", err)
+	}
+
+	switch {
+	case config.DefaultDays <= 0:
+		return Config{}, fmt.Errorf("ANALYTICS_DEFAULT_DAYS must be positive, got %d", config.DefaultDays)
+	case config.MaxDays < config.DefaultDays:
+		return Config{}, fmt.Errorf("ANALYTICS_MAX_DAYS must be greater than or equal to ANALYTICS_DEFAULT_DAYS, got %d and %d", config.MaxDays, config.DefaultDays)
+	case config.TopReferers <= 0:
+		return Config{}, fmt.Errorf("ANALYTICS_TOP_REFERERS must be positive, got %d", config.TopReferers)
 	}
 
 	tz := os.Getenv("TIME_ZONE")

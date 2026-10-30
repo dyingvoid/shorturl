@@ -10,17 +10,17 @@ import (
 
 type Config struct {
 	TimeZone              *time.Location
-	CreateURLAttempts     int           `envconfig:"URL_CREATE_ATTEMPTS" default:"3"`
+	CreateURLAttempts     int           `envconfig:"CREATE_ATTEMPTS" default:"3"`
 	LinkCacheTTL          time.Duration `envconfig:"LINK_CACHE_TTL" default:"5m"`
-	ServerPort            int           `envconfig:"URL_SERVICE_PORT" default:"50051"`
-	MetricsServerPort     int           `envconfig:"URL_METRICS_PORT" default:"9090"`
+	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50051"`
+	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 	URL                   string        `envconfig:"URL" default:"example.com"`
 }
 
 func New() (Config, error) {
 	var config Config
-	if err := envconfig.Process("", &config); err != nil {
+	if err := envconfig.Process("URL", &config); err != nil {
 		return Config{}, fmt.Errorf("process envconfig: %w", err)
 	}
 

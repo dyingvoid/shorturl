@@ -78,7 +78,6 @@ func run(logger *slog.Logger) error {
 	}()
 
 	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
-	coreConfig := core.NewMust()
 
 	registry := prometheus.NewRegistry()
 	metrics, err := infrastructure_prometheus.NewMetrics(registry)
@@ -94,7 +93,7 @@ func run(logger *slog.Logger) error {
 	)
 
 	analyticsService := core.NewService(
-		coreConfig,
+		cfg,
 		urlClient,
 		analyticsRepository,
 	)
@@ -114,9 +113,9 @@ func run(logger *slog.Logger) error {
 		"kafka_group", kafkaConfig.GroupID,
 		"batch_size", kafkaConfig.BatchSize,
 		"batch_flush_interval", kafkaConfig.BatchFlushInterval,
-		"default_days", coreConfig.DefaultDays,
-		"max_days", coreConfig.MaxDays,
-		"top_referers", coreConfig.TopReferers,
+		"default_days", cfg.DefaultDays,
+		"max_days", cfg.MaxDays,
+		"top_referers", cfg.TopReferers,
 	)
 
 	serverCtx, stopServer := context.WithCancel(context.Background())
