@@ -19,11 +19,16 @@ import (
 const (
 	maxBytes = 10e6
 	maxWait  = 250 * time.Millisecond
+
+	defaultBatchSize  = 100
+	defaultBatchFlush = 5 * time.Second
 )
 
 type Reader struct {
-	reader *kafka.Reader
-	log    *slog.Logger
+	reader  *kafka.Reader
+	log     *slog.Logger
+	limit   int
+	timeout time.Duration
 
 	fetchMu sync.Mutex
 
@@ -37,6 +42,12 @@ type Reader struct {
 func NewReader(cfg Config, log *slog.Logger) (*Reader, error) {
 	if log == nil {
 		log = slog.Default()
+	}
+	if cfg.BatchSize <= 0 {
+		cfg.BatchSize = defaultBatchSize
+	}
+	if cfg.BatchFlushInterval <= 0 {
+		cfg.BatchFlushInterval = defaultBatchFlush
 	}
 
 	readerConfig := kafka.ReaderConfig{
@@ -58,19 +69,16 @@ func NewReader(cfg Config, log *slog.Logger) (*Reader, error) {
 	}
 
 	return &Reader{
-		reader: kafka.NewReader(readerConfig),
-		log:    log,
+		reader:  kafka.NewReader(readerConfig),
+		log:     log,
+		limit:   cfg.BatchSize,
+		timeout: cfg.BatchFlushInterval,
 	}, nil
 }
 
-func (r *Reader) Fetch(
-	ctx context.Context,
-	limit int,
-) (core.MsgBatch[domain.ClickEvent], error) {
-	if limit <= 0 {
-		return core.MsgBatch[domain.ClickEvent]{},
-			fmt.Errorf("fetch: limit must be positive, got %d", limit)
-	}
+func (r *Reader) Fetch(ctx context.Context) (core.MsgBatch[domain.ClickEvent], error) {
+	fetchCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
 
 	r.fetchMu.Lock()
 	defer r.fetchMu.Unlock()
@@ -79,8 +87,8 @@ func (r *Reader) Fetch(
 		return core.MsgBatch[domain.ClickEvent]{}, err
 	}
 
-	events := make([]domain.ClickEvent, 0, limit)
-	messages := make([]kafka.Message, 0, limit)
+	events := make([]domain.ClickEvent, 0, r.limit)
+	messages := make([]kafka.Message, 0, r.limit)
 
 	makeBatch := func() core.MsgBatch[domain.ClickEvent] {
 		if len(events) == 0 {
@@ -95,8 +103,8 @@ func (r *Reader) Fetch(
 		}
 	}
 
-	for len(events) < limit {
-		message, err := r.reader.FetchMessage(ctx)
+	for len(events) < r.limit {
+		message, err := r.reader.FetchMessage(fetchCtx)
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
 				return makeBatch(), nil

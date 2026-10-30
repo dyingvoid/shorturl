@@ -2,17 +2,14 @@ package core
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
-	BatchSize          int           `envconfig:"BATCH_SIZE" default:"100"`
-	BatchFlushInterval time.Duration `envconfig:"BATCH_FLUSH_INTERVAL" default:"5s"`
-	DefaultDays        int32         `envconfig:"ANALYTICS_DEFAULT_DAYS" default:"30"`
-	MaxDays            int32         `envconfig:"ANALYTICS_MAX_DAYS" default:"365"`
-	TopReferers        int           `envconfig:"ANALYTICS_TOP_REFERERS" default:"10"`
+	DefaultDays int32 `envconfig:"ANALYTICS_DEFAULT_DAYS" default:"30"`
+	MaxDays     int32 `envconfig:"ANALYTICS_MAX_DAYS" default:"365"`
+	TopReferers int   `envconfig:"ANALYTICS_TOP_REFERERS" default:"10"`
 }
 
 func New() (Config, error) {

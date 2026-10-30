@@ -79,12 +79,10 @@ func run(logger *slog.Logger) error {
 	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
 	coreConfig := core.NewMust()
 
-	consumer := core.NewAnalyticsForwarder(
+	forwarder := core.NewAnalyticsForwarder(
 		logger,
 		reader,
 		analyticsRepository,
-		coreConfig.BatchSize,
-		coreConfig.BatchFlushInterval,
 	)
 
 	analyticsService := core.NewService(
@@ -107,8 +105,8 @@ func run(logger *slog.Logger) error {
 		"analytics starting",
 		"kafka_topic", kafkaConfig.Topic,
 		"kafka_group", kafkaConfig.GroupID,
-		"batch_size", coreConfig.BatchSize,
-		"batch_flush_interval", coreConfig.BatchFlushInterval,
+		"batch_size", kafkaConfig.BatchSize,
+		"batch_flush_interval", kafkaConfig.BatchFlushInterval,
 		"default_days", coreConfig.DefaultDays,
 		"max_days", coreConfig.MaxDays,
 		"top_referers", coreConfig.TopReferers,
@@ -128,7 +126,7 @@ func run(logger *slog.Logger) error {
 	}()
 
 	go func() {
-		consumerErrCh <- consumer.Run(consumerCtx)
+		consumerErrCh <- forwarder.Run(consumerCtx)
 	}()
 
 	var (

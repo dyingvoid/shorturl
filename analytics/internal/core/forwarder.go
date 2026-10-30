@@ -5,47 +5,29 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	core_errors "github.com/dyingvoid/shorturl/analytics/internal/core/errors"
-)
-
-const (
-	defaultLimit   = 100
-	defaultTimeout = 5 * time.Second
 )
 
 type AnalyticsForwarder[T any] struct {
 	log     *slog.Logger
 	fetcher Fetcher[T]
 	writer  Writer[T]
-	limit   int
-	timeout time.Duration
 }
 
 func NewAnalyticsForwarder[T any](
 	log *slog.Logger,
 	fetcher Fetcher[T],
 	writer Writer[T],
-	limit int,
-	timeout time.Duration,
 ) *AnalyticsForwarder[T] {
 	if log == nil {
 		log = slog.Default()
-	}
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if timeout <= 0 {
-		timeout = defaultTimeout
 	}
 
 	return &AnalyticsForwarder[T]{
 		log:     log,
 		fetcher: fetcher,
 		writer:  writer,
-		limit:   limit,
-		timeout: timeout,
 	}
 }
 
@@ -66,17 +48,13 @@ func (f AnalyticsForwarder[T]) Run(ctx context.Context) error {
 }
 
 func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
-	tctx, cancel := context.WithTimeout(ctx, f.timeout)
-	defer cancel()
-
-	batch, err := f.fetcher.Fetch(tctx, f.limit)
+	batch, err := f.fetcher.Fetch(ctx)
 	switch {
 	case err == nil:
 	case errors.Is(err, core_errors.ErrParseRecord):
 		return err
 	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
-		// A fetch window closing without reaching the limit is expected:
-		// process whatever was collected so far.
+		// A fetch window closing is expected: process whatever was collected so far.
 	default:
 		f.log.Error("fetch records", "error", err)
 	}
