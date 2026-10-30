@@ -113,7 +113,7 @@ services:
       REDIS_PORT: 6379
     ports:
       - "50051:50051"
-      - "9090:9090"
+      - "9100:9100"
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,7 +137,7 @@ services:
       KAFKA_BROKERS: kafka:9092
     ports:
       - "50052:50052"
-      - "9091:9091"
+      - "9101:9101"
     depends_on:
       mongo:
         condition: service_started
@@ -162,7 +162,7 @@ services:
       URL_SERVICE_PORT: 50052
     ports:
       - "50053:50053"
-      - "9093:9093"
+      - "9103:9103"
     depends_on:
       kafka:
         condition: service_started
@@ -187,7 +187,7 @@ services:
       ANALYTICS_SERVICE_PORT: 50053
     ports:
       - "8082:8082"
-      - "9092:9092"
+      - "9102:9102"
     depends_on:
       user:
         condition: service_started

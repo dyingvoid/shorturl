@@ -25,6 +25,6 @@ WORKDIR /app
 
 COPY --from=builder /out/gateway /app/gateway
 
-EXPOSE 8082 9092
+EXPOSE 8082 9102
 
 ENTRYPOINT ["/app/gateway"]

@@ -25,6 +25,6 @@ WORKDIR /app
 
 COPY --from=builder /out/user /app/user
 
-EXPOSE 50051 9090
+EXPOSE 50051 9100
 
 ENTRYPOINT ["/app/user"]

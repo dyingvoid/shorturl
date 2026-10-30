@@ -25,6 +25,6 @@ WORKDIR /app
 
 COPY --from=builder /out/url /app/url
 
-EXPOSE 50052 9091
+EXPOSE 50052 9101
 
 ENTRYPOINT ["/app/url"]
