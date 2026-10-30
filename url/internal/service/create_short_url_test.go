@@ -52,9 +52,18 @@ func newTestServiceWithProducer(
 		cache,
 		links,
 		producer,
+		noopMetrics{},
 		slog.New(slog.DiscardHandler),
 	)
 }
+
+type noopMetrics struct{}
+
+func (noopMetrics) IncLinksCreated() {}
+
+func (noopMetrics) IncRedirects() {}
+
+func (noopMetrics) IncKafkaMessagesProduced() {}
 
 func TestCreateShortURL_Success(t *testing.T) {
 	t.Parallel()

@@ -15,6 +15,7 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/handler"
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
+	infrastructure_prometheus "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/prometheus"
 	urlclient "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/url_client"
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
@@ -79,10 +80,17 @@ func run(logger *slog.Logger) error {
 	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
 	coreConfig := core.NewMust()
 
+	registry := prometheus.NewRegistry()
+	metrics, err := infrastructure_prometheus.NewMetrics(registry)
+	if err != nil {
+		return fmt.Errorf("create metrics: %w", err)
+	}
+
 	forwarder := core.NewAnalyticsForwarder(
 		logger,
 		reader,
 		analyticsRepository,
+		metrics,
 	)
 
 	analyticsService := core.NewService(
@@ -91,7 +99,6 @@ func run(logger *slog.Logger) error {
 		analyticsRepository,
 	)
 
-	registry := prometheus.NewRegistry()
 	s, err := server.New(cfg, logger, "analytics", registry)
 	if err != nil {
 		return err

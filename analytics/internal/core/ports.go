@@ -16,3 +16,8 @@ type Fetcher[T any] interface {
 type Writer[T any] interface {
 	WriteBatch(ctx context.Context, events []T) error
 }
+
+type Metrics interface {
+	IncKafkaMessagesConsumed(count int)
+	ObserveClickHouseBatchInsertDuration(seconds float64)
+}

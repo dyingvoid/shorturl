@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	core_errors "github.com/dyingvoid/shorturl/analytics/internal/core/errors"
 )
@@ -13,12 +14,14 @@ type AnalyticsForwarder[T any] struct {
 	log     *slog.Logger
 	fetcher Fetcher[T]
 	writer  Writer[T]
+	metrics Metrics
 }
 
 func NewAnalyticsForwarder[T any](
 	log *slog.Logger,
 	fetcher Fetcher[T],
 	writer Writer[T],
+	metrics Metrics,
 ) *AnalyticsForwarder[T] {
 	if log == nil {
 		log = slog.Default()
@@ -28,6 +31,7 @@ func NewAnalyticsForwarder[T any](
 		log:     log,
 		fetcher: fetcher,
 		writer:  writer,
+		metrics: metrics,
 	}
 }
 
@@ -61,10 +65,15 @@ func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
 		return nil
 	}
 
-	if err := f.writer.WriteBatch(ctx, batch.Messages); err != nil {
-		return fmt.Errorf("write batch: %w", err)
+	start := time.Now()
+	writeErr := f.writer.WriteBatch(ctx, batch.Messages)
+	f.metrics.ObserveClickHouseBatchInsertDuration(time.Since(start).Seconds())
+
+	if writeErr != nil {
+		return fmt.Errorf("write batch: %w", writeErr)
 	}
 
+	f.metrics.IncKafkaMessagesConsumed(len(batch.Messages))
 	batch.Ack(ctx)
 	f.log.Debug("batch processed", "records", len(batch.Messages))
 	return nil

@@ -17,6 +17,7 @@ import (
 	infrastructure_kafka "github.com/dyingvoid/urlshort/url/internal/infrastructure/kafka"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
 	mongo_repository_links "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/links_repository"
+	infrastructure_prometheus "github.com/dyingvoid/urlshort/url/internal/infrastructure/prometheus"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/users_client"
 	"github.com/dyingvoid/urlshort/url/internal/service"
@@ -72,13 +73,19 @@ func run(log *slog.Logger) error {
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
 		return err
 	}
+
+	registry := prometheus.NewRegistry()
+	metrics, err := infrastructure_prometheus.NewMetrics(registry)
+	if err != nil {
+		return err
+	}
+
 	urlService := service.New(
 		cfg.URL, cfg.CreateURLAttempts, cfg.LinkCacheTTL,
-		usersClient, redisCache, linksRepository, userViewProducer, log,
+		usersClient, redisCache, linksRepository, userViewProducer, metrics, log,
 	)
 
-	r := prometheus.NewRegistry()
-	s, err := server.New(cfg, log, "url", r)
+	s, err := server.New(cfg, log, "url", registry)
 	if err != nil {
 		return err
 	}
