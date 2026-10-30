@@ -10,13 +10,14 @@ import (
 
 type Config struct {
 	TimeZone              *time.Location
-	ServerPort            int           `envconfig:"ANALYTICS_SERVICE_PORT" default:"50053"`
+	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50053"`
+	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 
 func New() (Config, error) {
 	var config Config
-	if err := envconfig.Process("", &config); err != nil {
+	if err := envconfig.Process("ANALYTICS", &config); err != nil {
 		return Config{}, fmt.Errorf("process envconfig: %w", err)
 	}
 
@@ -46,6 +47,10 @@ func NewMust() Config {
 
 func (c Config) Port() int {
 	return c.ServerPort
+}
+
+func (c Config) MetricsPort() int {
+	return c.MetricsServerPort
 }
 
 func (c Config) ShutdownTimeout() time.Duration {

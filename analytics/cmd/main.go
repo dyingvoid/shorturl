@@ -90,7 +90,8 @@ func run(logger *slog.Logger) error {
 		analyticsRepository,
 	)
 
-	s := server.New(cfg, logger, "analytics")
+	// TODO: proper registry
+	s := server.New(cfg, logger, "analytics", nil)
 	analyticsv1.RegisterAnalyticsServiceServer(
 		s.GRPC(),
 		handler.New(analyticsService),

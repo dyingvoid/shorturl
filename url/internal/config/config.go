@@ -13,6 +13,7 @@ type Config struct {
 	CreateURLAttempts     int           `envconfig:"URL_CREATE_ATTEMPTS" default:"3"`
 	LinkCacheTTL          time.Duration `envconfig:"LINK_CACHE_TTL" default:"5m"`
 	ServerPort            int           `envconfig:"URL_SERVICE_PORT" default:"50051"`
+	MetricsServerPort     int           `envconfig:"URL_METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 	URL                   string        `envconfig:"URL" default:"example.com"`
 }
@@ -49,6 +50,10 @@ func NewMust() Config {
 
 func (c Config) Port() int {
 	return c.ServerPort
+}
+
+func (c Config) MetricsPort() int {
+	return c.MetricsServerPort
 }
 
 func (c Config) ShutdownTimeout() time.Duration {

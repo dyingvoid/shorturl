@@ -11,6 +11,7 @@ import (
 type Config struct {
 	TimeZone              *time.Location
 	ServerPort            int           `envconfig:"USER_SERVICE_PORT" default:"50051"`
+	MetricsServerPort     int           `envconfig:"USER_METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 
@@ -46,6 +47,10 @@ func NewMust() Config {
 
 func (c Config) Port() int {
 	return c.ServerPort
+}
+
+func (c Config) MetricsPort() int {
+	return c.MetricsServerPort
 }
 
 func (c Config) ShutdownTimeout() time.Duration {

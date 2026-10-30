@@ -55,10 +55,11 @@ func main() {
 		redisCache, log,
 	)
 
-	s := server.New(cfg, log, "user")
+	// TODO: proper registry
+	s := server.New(cfg, log, "user", nil)
 	userv1.RegisterUserServiceServer(s.GRPC(), handler.New(usersService))
 
 	if err := s.Run(ctx); err != nil {
-		log.Error(err.Error())
+		log.Error("grpc server", "err", err)
 	}
 }

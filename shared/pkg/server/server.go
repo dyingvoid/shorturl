@@ -6,25 +6,39 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
-	grpc *grpc.Server
-	cfg  Config
-	log  *slog.Logger
-	id string
+	grpc          *grpc.Server
+	metricsServer *http.Server
+
+	cfg Config
+	
+	log *slog.Logger
+	id  string
 }
 
 type Config interface {
 	Port() int
+	MetricsPort() int
 	ShutdownTimeout() time.Duration
 }
 
-func New(cfg Config, log *slog.Logger, id string) *Server {
+func New(
+	cfg Config,
+	log *slog.Logger,
+	id string,
+	reg prometheus.Gatherer,
+) *Server {
+	log = log.With("server_id", id)
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			RequestID(),
@@ -33,15 +47,26 @@ func New(cfg Config, log *slog.Logger, id string) *Server {
 			Recovery(log),
 		),
 	)
-
 	reflection.Register(grpcServer)
 
-	return &Server{
+	server := &Server{
 		grpc: grpcServer,
 		cfg:  cfg,
 		log:  log,
-		id: id,
+		id:   id,
 	}
+
+	if reg != nil {
+		server.metricsServer = &http.Server{
+			Addr: fmt.Sprintf(":%d", cfg.MetricsPort()),
+			Handler: promhttp.HandlerFor(
+				reg,
+				promhttp.HandlerOpts{},
+			),
+		}
+	}
+
+	return server
 }
 
 func (s *Server) GRPC() *grpc.Server {
@@ -49,43 +74,71 @@ func (s *Server) GRPC() *grpc.Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
+	s.log.Warn(
+		"server starting",
+		"grpc port", s.cfg.Port(),
+		"metrics port", s.cfg.MetricsPort(),
+	)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Port()))
 	if err != nil {
 		return fmt.Errorf("listen grpc: %w", err)
 	}
 
-	errCh := make(chan error, 1)
+	grpcErrCh := make(chan error, 1)
+	metricsErrCh := make(chan error, 1)
 
 	go func() {
-		defer close(errCh)
-
-		s.log.Warn("server starting", "port", s.cfg.Port(), "id", s.id)
-
-		err := s.grpc.Serve(lis)
-		if err != nil && !errors.Is(err, grpc.ErrServerStopped) {
-			errCh <- err
+		defer close(metricsErrCh)
+		if err := s.metricsServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			metricsErrCh <- err
+		}
+	}()
+	go func() {
+		defer close(grpcErrCh)
+		if err := s.grpc.Serve(lis); err != nil &&
+			!errors.Is(err, grpc.ErrServerStopped) {
+			grpcErrCh <- err
 		}
 	}()
 
 	select {
-	case err := <-errCh:
-		if err != nil {
-			return fmt.Errorf("serve grpc: %w", err)
-		}
-		return nil
+	case grpcErr := <-grpcErrCh:
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			s.cfg.ShutdownTimeout(),
+		)
+		defer cancel()
+
+		metricsError := s.metricsStop(shutdownCtx)
+		return errors.Join(grpcErr, metricsError)
+
+	case metricsErr := <-metricsErrCh:
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			s.cfg.ShutdownTimeout(),
+		)
+		defer cancel()
+
+		grpcErr := s.grpcStop(shutdownCtx)
+		return errors.Join(metricsErr, grpcErr)
+
 	case <-ctx.Done():
-		s.log.Warn("shutdown grpc server...")
+		s.log.Warn("shutdown server...")
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(), s.cfg.ShutdownTimeout(),
+		)
+		defer cancel()
 
-		if err := s.stop(); err != nil {
-			return err
-		}
+		grpcErr := s.grpcStop(shutdownCtx)
+		metricsErr := s.metricsStop(shutdownCtx)
 
-		s.log.Warn("grpc server stopped")
-		return nil
+		s.log.Warn("server stop")
+		return errors.Join(grpcErr, metricsErr)
 	}
 }
 
-func (s *Server) stop() error {
+func (s *Server) grpcStop(ctx context.Context) error {
 	stopped := make(chan struct{})
 
 	go func() {
@@ -96,8 +149,17 @@ func (s *Server) stop() error {
 	select {
 	case <-stopped:
 		return nil
-	case <-time.After(s.cfg.ShutdownTimeout()):
+	case <-ctx.Done():
 		s.grpc.Stop()
 		return fmt.Errorf("shutdown grpc server: timeout %s exceeded", s.cfg.ShutdownTimeout())
 	}
+}
+
+func (s *Server) metricsStop(ctx context.Context) error {
+	if err := s.metricsServer.Shutdown(ctx); err != nil {
+		_ = s.metricsServer.Close()
+		return fmt.Errorf("shutdown metrics server: timeout %s exceeded", s.cfg.ShutdownTimeout())
+	}
+
+	return nil
 }
