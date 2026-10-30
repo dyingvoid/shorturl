@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Addr              string        `ignored:"true"`
 	Port              int           `envconfig:"GATEWAY_PORT" default:"8082"`
+	MetricsPort       int           `envconfig:"GATEWAY_METRICS_PORT" default:"9090"`
 	ShutdownTimeout   time.Duration `envconfig:"GATEWAY_SHUTDOWN_TIMEOUT" default:"10s"`
 	RequestTimeout    time.Duration `envconfig:"GATEWAY_REQUEST_TIMEOUT" default:"5s"`
 	AllowedOrigins    []string      `envconfig:"GATEWAY_ALLOWED_ORIGINS" default:"http://localhost:3000"`

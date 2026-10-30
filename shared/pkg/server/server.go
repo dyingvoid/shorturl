@@ -46,6 +46,7 @@ func New(
 		RequestID(),
 		Logger(log),
 		Trace(),
+		Recovery(log),
 	}
 
 	if reg != nil {
@@ -66,7 +67,6 @@ func New(
 		}
 	}
 
-	interceptors = append(interceptors, Recovery(log))
 	server.grpc = grpc.NewServer(
 		grpc.ChainUnaryInterceptor(interceptors...),
 	)
@@ -95,9 +95,11 @@ func (s *Server) Run(ctx context.Context) error {
 	metricsErrCh := make(chan error, 1)
 
 	go func() {
-		defer close(metricsErrCh)
-		if err := s.metricsServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			metricsErrCh <- err
+		if s.metricsServer != nil {
+			defer close(metricsErrCh)
+			if err := s.metricsServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+				metricsErrCh <- err
+			}
 		}
 	}()
 	go func() {
@@ -110,38 +112,28 @@ func (s *Server) Run(ctx context.Context) error {
 
 	select {
 	case grpcErr := <-grpcErrCh:
-		shutdownCtx, cancel := context.WithTimeout(
-			context.Background(),
-			s.cfg.ShutdownTimeout(),
-		)
-		defer cancel()
-
-		metricsError := s.metricsStop(shutdownCtx)
-		return errors.Join(grpcErr, metricsError)
+		return errors.Join(grpcErr, s.stop())
 
 	case metricsErr := <-metricsErrCh:
-		shutdownCtx, cancel := context.WithTimeout(
-			context.Background(),
-			s.cfg.ShutdownTimeout(),
-		)
-		defer cancel()
-
-		grpcErr := s.grpcStop(shutdownCtx)
-		return errors.Join(metricsErr, grpcErr)
+		return errors.Join(metricsErr, s.stop())
 
 	case <-ctx.Done():
-		s.log.Warn("shutdown server...")
-		shutdownCtx, cancel := context.WithTimeout(
-			context.Background(), s.cfg.ShutdownTimeout(),
-		)
-		defer cancel()
-
-		grpcErr := s.grpcStop(shutdownCtx)
-		metricsErr := s.metricsStop(shutdownCtx)
-
-		s.log.Warn("server stop")
-		return errors.Join(grpcErr, metricsErr)
+		return s.stop()
 	}
+}
+
+func (s *Server) stop() error {
+	s.log.Info("shutdown server...")
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(), s.cfg.ShutdownTimeout(),
+	)
+	defer cancel()
+
+	grpcErr := s.grpcStop(shutdownCtx)
+	metricsErr := s.metricsStop(shutdownCtx)
+
+	s.log.Warn("server stop")
+	return errors.Join(grpcErr, metricsErr)
 }
 
 func (s *Server) grpcStop(ctx context.Context) error {
@@ -162,6 +154,10 @@ func (s *Server) grpcStop(ctx context.Context) error {
 }
 
 func (s *Server) metricsStop(ctx context.Context) error {
+	if s.metricsServer == nil {
+		return nil
+	}
+
 	if err := s.metricsServer.Shutdown(ctx); err != nil {
 		_ = s.metricsServer.Close()
 		return fmt.Errorf("shutdown metrics server: timeout %s exceeded", s.cfg.ShutdownTimeout())
