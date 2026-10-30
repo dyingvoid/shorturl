@@ -16,15 +16,18 @@ import (
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
 	urlclient "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/url_client"
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	log := logger.Init(logger.NewMust())
+	log.Warn("application started")
 
-	if err := run(logger); err != nil {
-		logger.Error("analytics stopped with error", "error", err)
+	if err := run(log); err != nil {
+		log.Error("analytics stopped with error", "error", err)
 		os.Exit(1)
 	}
 }
@@ -90,8 +93,11 @@ func run(logger *slog.Logger) error {
 		analyticsRepository,
 	)
 
-	// TODO: proper registry
-	s := server.New(cfg, logger, "analytics", nil)
+	registry := prometheus.NewRegistry()
+	s, err := server.New(cfg, logger, "analytics", registry)
+	if err != nil {
+		return err
+	}
 	analyticsv1.RegisterAnalyticsServiceServer(
 		s.GRPC(),
 		handler.New(analyticsService),

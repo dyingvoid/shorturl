@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -20,7 +19,7 @@ type Server struct {
 	metricsServer *http.Server
 
 	cfg Config
-	
+
 	log *slog.Logger
 	id  string
 }
@@ -35,38 +34,45 @@ func New(
 	cfg Config,
 	log *slog.Logger,
 	id string,
-	reg prometheus.Gatherer,
-) *Server {
+	reg MetricsRegistry,
+) (*Server, error) {
 	log = log.With("server_id", id)
-
-	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(
-			RequestID(),
-			Logger(log),
-			Trace(),
-			Recovery(log),
-		),
-	)
-	reflection.Register(grpcServer)
-
 	server := &Server{
-		grpc: grpcServer,
-		cfg:  cfg,
-		log:  log,
-		id:   id,
+		cfg: cfg,
+		log: log,
+		id:  id,
+	}
+	interceptors := []grpc.UnaryServerInterceptor{
+		RequestID(),
+		Logger(log),
+		Trace(),
 	}
 
 	if reg != nil {
+		m, err := newMetrics(reg)
+		if err != nil {
+			return nil, fmt.Errorf("create metrics: %w", err)
+		}
+
+		interceptors = append(interceptors, m.UnaryServerInterceptor())
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.HandlerFor(
+			reg,
+			promhttp.HandlerOpts{},
+		))
 		server.metricsServer = &http.Server{
-			Addr: fmt.Sprintf(":%d", cfg.MetricsPort()),
-			Handler: promhttp.HandlerFor(
-				reg,
-				promhttp.HandlerOpts{},
-			),
+			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort()),
+			Handler: mux,
 		}
 	}
 
-	return server
+	interceptors = append(interceptors, Recovery(log))
+	server.grpc = grpc.NewServer(
+		grpc.ChainUnaryInterceptor(interceptors...),
+	)
+	reflection.Register(server.grpc)
+
+	return server, nil
 }
 
 func (s *Server) GRPC() *grpc.Server {

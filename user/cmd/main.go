@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
@@ -17,29 +20,38 @@ import (
 	users_postgres_repository "github.com/dyingvoid/shorturl/user/internal/infrastructure/postgres/repository"
 	"github.com/dyingvoid/shorturl/user/internal/infrastructure/redis"
 	"github.com/dyingvoid/shorturl/user/internal/service"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
+	log := logger.Init(logger.NewMust())
+	log.Warn("application started")
+
+	if err := run(log); err != nil {
+		log.Error("user stopped with error", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
 	)
 	defer stop()
 
 	cfg := config.NewMust()
-
-	log := logger.Init(logger.NewMust())
-	log.Warn("application started")
+	time.Local = cfg.TimeZone
 	log.Info("time zone", "timezone", cfg.TimeZone.String())
 
 	pool, err := postgres.Connect(ctx, postgres.NewMust())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer pool.Close()
 
 	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer redisClient.Close()
 
@@ -55,11 +67,12 @@ func main() {
 		redisCache, log,
 	)
 
-	// TODO: proper registry
-	s := server.New(cfg, log, "user", nil)
+	reg := prometheus.NewRegistry()
+	s, err := server.New(cfg, log, "user", reg)
+	if err != nil {
+		return err
+	}
 	userv1.RegisterUserServiceServer(s.GRPC(), handler.New(usersService))
 
-	if err := s.Run(ctx); err != nil {
-		log.Error("grpc server", "err", err)
-	}
+	return s.Run(ctx)
 }
