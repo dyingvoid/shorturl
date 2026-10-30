@@ -86,17 +86,116 @@ services:
     image: apache/kafka:4.4.0
     ports:
       - "9092:9092"
+      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: INTERNAL://:9092,EXTERNAL://:9094,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  user:
+    build:
+      context: .
+      dockerfile: user/cmd/Dockerfile
+    env_file:
+      - ${USER_PROJECT_ROOT}/.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "50051:50051"
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  url:
+    build:
+      context: .
+      dockerfile: url/cmd/Dockerfile
+    env_file:
+      - ${URL_PROJECT_ROOT}/.env
+    environment:
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      USER_SERVICE_HOST: user
+      USER_SERVICE_PORT: 50051
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "50052:50052"
+      - "9091:9091"
+    depends_on:
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      user:
+        condition: service_started
+    restart: unless-stopped
+
+  analytics:
+    build:
+      context: .
+      dockerfile: analytics/cmd/Dockerfile
+    env_file:
+      - ${ANALYTICS_PROJECT_ROOT}/.env
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      CLICKHOUSE_ADDR: clickhouse:9000
+      URL_SERVICE_HOST: url
+      URL_SERVICE_PORT: 50052
+    ports:
+      - "50053:50053"
+      - "9093:9093"
+    depends_on:
+      kafka:
+        condition: service_started
+      clickhouse:
+        condition: service_started
+      url:
+        condition: service_started
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/cmd/Dockerfile
+    env_file:
+      - ${GATEWAY_PROJECT_ROOT}/.env
+    environment:
+      USERS_SERVICE_HOST: user
+      USERS_SERVICE_PORT: 50051
+      URL_SERVICE_HOST: url
+      URL_SERVICE_PORT: 50052
+      ANALYTICS_SERVICE_HOST: analytics
+      ANALYTICS_SERVICE_PORT: 50053
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+    depends_on:
+      user:
+        condition: service_started
+      url:
+        condition: service_started
+      analytics:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -43,7 +43,7 @@ lint:
 	golangci-lint run ./user/...
 
 up:
-	docker compose up -d
+	docker compose up -d --build
 
 down:
 	docker compose down --remove-orphans
