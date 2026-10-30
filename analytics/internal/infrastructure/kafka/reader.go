@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"sync"
 	"time"
 
@@ -16,19 +17,17 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 )
 
-const (
-	maxBytes = 10e6
-	maxWait  = 250 * time.Millisecond
+var clickEventBytes = int(reflect.TypeOf(domain.ClickEvent{}).Size())
 
+const (
 	defaultBatchSize  = 100
 	defaultBatchFlush = 5 * time.Second
 )
 
 type Reader struct {
-	reader  *kafka.Reader
-	log     *slog.Logger
-	limit   int
-	timeout time.Duration
+	cfg    Config
+	reader *kafka.Reader
+	log    *slog.Logger
 
 	fetchMu sync.Mutex
 
@@ -57,8 +56,8 @@ func NewReader(cfg Config, log *slog.Logger) (*Reader, error) {
 		StartOffset: kafka.FirstOffset,
 
 		MinBytes:      1,
-		MaxBytes:      maxBytes,
-		MaxWait:       maxWait,
+		MaxBytes:      clickEventBytes * cfg.BatchSize,
+		MaxWait:       cfg.BatchFlushInterval,
 		QueueCapacity: 128,
 
 		CommitInterval: 0,
@@ -69,15 +68,19 @@ func NewReader(cfg Config, log *slog.Logger) (*Reader, error) {
 	}
 
 	return &Reader{
-		reader:  kafka.NewReader(readerConfig),
-		log:     log,
-		limit:   cfg.BatchSize,
-		timeout: cfg.BatchFlushInterval,
+		cfg:    cfg,
+		reader: kafka.NewReader(readerConfig),
+		log:    log,
 	}, nil
 }
 
 func (r *Reader) Fetch(ctx context.Context) (core.MsgBatch[domain.ClickEvent], error) {
-	fetchCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	limit := r.cfg.BatchSize
+	if limit <= 0 {
+		limit = 1
+	}
+
+	fetchCtx, cancel := context.WithTimeout(ctx, r.cfg.BatchFlushInterval)
 	defer cancel()
 
 	r.fetchMu.Lock()
@@ -87,30 +90,17 @@ func (r *Reader) Fetch(ctx context.Context) (core.MsgBatch[domain.ClickEvent], e
 		return core.MsgBatch[domain.ClickEvent]{}, err
 	}
 
-	events := make([]domain.ClickEvent, 0, r.limit)
-	messages := make([]kafka.Message, 0, r.limit)
+	events := make([]domain.ClickEvent, 0, limit)
+	messages := make([]kafka.Message, 0, limit)
 
-	makeBatch := func() core.MsgBatch[domain.ClickEvent] {
-		if len(events) == 0 {
-			return core.MsgBatch[domain.ClickEvent]{}
-		}
-
-		return core.MsgBatch[domain.ClickEvent]{
-			Messages: events,
-			Ack: func(ackCtx context.Context) error {
-				return r.reader.CommitMessages(ackCtx, messages...)
-			},
-		}
-	}
-
-	for len(events) < r.limit {
+	for len(events) < limit {
 		message, err := r.reader.FetchMessage(fetchCtx)
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
-				return makeBatch(), nil
+				return r.newBatch(events, messages), nil
 			}
 
-			return makeBatch(), err
+			return r.newBatch(events, messages), err
 		}
 
 		var event domain.ClickEvent
@@ -127,14 +117,27 @@ func (r *Reader) Fetch(ctx context.Context) (core.MsgBatch[domain.ClickEvent], e
 			r.log.Error("parse click event", "error", parseErr)
 			r.setFatal(parseErr)
 
-			return makeBatch(), parseErr
+			return r.newBatch(events, messages), parseErr
 		}
 
 		events = append(events, event)
 		messages = append(messages, message)
 	}
 
-	return makeBatch(), nil
+	return r.newBatch(events, messages), nil
+}
+
+func (r *Reader) newBatch(events []domain.ClickEvent, messages []kafka.Message) core.MsgBatch[domain.ClickEvent] {
+	if len(events) == 0 {
+		return core.MsgBatch[domain.ClickEvent]{}
+	}
+
+	return core.MsgBatch[domain.ClickEvent]{
+		Messages: events,
+		Ack: func(ackCtx context.Context) error {
+			return r.reader.CommitMessages(ackCtx, messages...)
+		},
+	}
 }
 
 func (r *Reader) fatal() error {

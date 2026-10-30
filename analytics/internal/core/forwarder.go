@@ -53,8 +53,6 @@ func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
 	case err == nil:
 	case errors.Is(err, core_errors.ErrParseRecord):
 		return err
-	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
-		// A fetch window closing is expected: process whatever was collected so far.
 	default:
 		f.log.Error("fetch records", "error", err)
 	}
