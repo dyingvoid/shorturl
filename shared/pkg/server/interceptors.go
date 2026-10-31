@@ -8,6 +8,7 @@ import (
 
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,6 +29,10 @@ func Logger(log *slog.Logger) grpc.UnaryServerInterceptor {
 			"request_id", requestIDFromContext(ctx),
 			"method", info.FullMethod,
 		)
+
+		if traceID := tracing.TraceID(ctx); traceID != "" {
+			l = l.With("trace_id", traceID)
+		}
 
 		ctx = logger.ToContext(ctx, l)
 

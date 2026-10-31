@@ -19,6 +19,7 @@ import (
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
@@ -56,10 +57,27 @@ func run(log *slog.Logger) error {
 	cfg := config.NewMust()
 	httpConfig := core_http_server.MustNewConfig()
 
+	traceProvider, err := tracing.New(ctx, log, "gateway")
+	if err != nil {
+		return fmt.Errorf("init tracing: %w", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			httpConfig.ShutdownTimeout,
+		)
+		defer cancel()
+
+		if err := traceProvider.Shutdown(shutdownCtx); err != nil {
+			log.Error("shutdown tracing", "error", err)
+		}
+	}()
+
 	usersConn, err := grpc.NewClient(
 		cfg.UsersServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
 		return fmt.Errorf("init users service client: %w", err)
@@ -74,6 +92,7 @@ func run(log *slog.Logger) error {
 		cfg.URLServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
 		return fmt.Errorf("init URL service client: %w", err)
@@ -87,6 +106,7 @@ func run(log *slog.Logger) error {
 	analyticsConn, err := grpc.NewClient(
 		cfg.AnalyticsServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
 		return fmt.Errorf("init analytics service client: %w", err)
@@ -109,6 +129,7 @@ func run(log *slog.Logger) error {
 	registry := prometheus.NewRegistry()
 	srv, err := core_http_server.New(
 		httpConfig, log, registry,
+		core_http_middleware.Tracing(),
 		core_http_middleware.RequestID(),
 		core_http_middleware.Logger(log),
 		core_http_middleware.Trace(),

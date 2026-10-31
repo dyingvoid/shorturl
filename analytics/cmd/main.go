@@ -98,7 +98,7 @@ func run(logger *slog.Logger) error {
 		analyticsRepository,
 	)
 
-	s, err := server.New(cfg, logger, "analytics", registry)
+	s, err := server.New(ctx, cfg, logger, "analytics", registry)
 	if err != nil {
 		return err
 	}

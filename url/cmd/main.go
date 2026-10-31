@@ -55,7 +55,7 @@ func run(log *slog.Logger) error {
 	}
 	defer redisClient.Close()
 
-	usersClient, err := users_client.Connect(ctx, users_client.NewMust())
+	usersClient, err := users_client.Connect(users_client.NewMust())
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func run(log *slog.Logger) error {
 		usersClient, redisCache, linksRepository, userViewProducer, metrics, log,
 	)
 
-	s, err := server.New(cfg, log, "url", registry)
+	s, err := server.New(ctx, cfg, log, "url", registry)
 	if err != nil {
 		return err
 	}

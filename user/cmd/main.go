@@ -68,7 +68,7 @@ func run(log *slog.Logger) error {
 	)
 
 	reg := prometheus.NewRegistry()
-	s, err := server.New(cfg, log, "user", reg)
+	s, err := server.New(ctx, cfg, log, "user", reg)
 	if err != nil {
 		return err
 	}

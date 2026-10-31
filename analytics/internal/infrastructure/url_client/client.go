@@ -8,6 +8,7 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 	domain_errors "github.com/dyingvoid/shorturl/analytics/internal/domain/errors"
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +25,7 @@ func Connect(cfg Config) (*Client, error) {
 	conn, err := grpc.NewClient(
 		cfg.Addr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect url service: %w", err)

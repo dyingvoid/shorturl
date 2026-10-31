@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -18,7 +19,8 @@ type Server struct {
 	grpc          *grpc.Server
 	metricsServer *http.Server
 
-	cfg Config
+	cfg     Config
+	tracing *tracing.Provider
 
 	log *slog.Logger
 	id  string
@@ -31,16 +33,24 @@ type Config interface {
 }
 
 func New(
+	ctx context.Context,
 	cfg Config,
 	log *slog.Logger,
 	id string,
 	reg MetricsRegistry,
 ) (*Server, error) {
 	log = log.With("server_id", id)
+
+	tracer, err := tracing.New(ctx, log, id)
+	if err != nil {
+		return nil, fmt.Errorf("init tracing: %w", err)
+	}
+
 	server := &Server{
-		cfg: cfg,
-		log: log,
-		id:  id,
+		cfg:     cfg,
+		tracing: tracer,
+		log:     log,
+		id:      id,
 	}
 	interceptors := []grpc.UnaryServerInterceptor{
 		RequestID(),
@@ -52,6 +62,7 @@ func New(
 	if reg != nil {
 		m, err := newMetrics(reg)
 		if err != nil {
+			_ = tracer.Shutdown(ctx)
 			return nil, fmt.Errorf("create metrics: %w", err)
 		}
 
@@ -69,6 +80,7 @@ func New(
 
 	server.grpc = grpc.NewServer(
 		grpc.ChainUnaryInterceptor(interceptors...),
+		grpc.StatsHandler(tracing.GRPCServerHandler()),
 	)
 	reflection.Register(server.grpc)
 
@@ -131,9 +143,10 @@ func (s *Server) stop() error {
 
 	grpcErr := s.grpcStop(shutdownCtx)
 	metricsErr := s.metricsStop(shutdownCtx)
+	tracingErr := s.tracing.Shutdown(shutdownCtx)
 
 	s.log.Warn("server stop")
-	return errors.Join(grpcErr, metricsErr)
+	return errors.Join(grpcErr, metricsErr, tracingErr)
 }
 
 func (s *Server) grpcStop(ctx context.Context) error {

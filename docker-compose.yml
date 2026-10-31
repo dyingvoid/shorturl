@@ -111,6 +111,8 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "50051:50051"
       - "9100:9100"
@@ -135,6 +137,8 @@ services:
       USER_SERVICE_HOST: user
       USER_SERVICE_PORT: 50051
       KAFKA_BROKERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "50052:50052"
       - "9101:9101"
@@ -160,6 +164,8 @@ services:
       CLICKHOUSE_ADDR: clickhouse:9000
       URL_SERVICE_HOST: url
       URL_SERVICE_PORT: 50052
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "50053:50053"
       - "9103:9103"
@@ -185,6 +191,8 @@ services:
       URL_SERVICE_PORT: 50052
       ANALYTICS_SERVICE_HOST: analytics
       ANALYTICS_SERVICE_PORT: 50053
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     ports:
       - "8082:8082"
       - "9102:9102"
@@ -236,6 +244,15 @@ services:
       prometheus:
         condition: service_started
     restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    container_name: jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
 
 volumes:
   postgres_data:

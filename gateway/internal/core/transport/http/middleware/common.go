@@ -11,7 +11,12 @@ import (
 	core_http_response "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/response"
 	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 )
+
+func Tracing() Middleware {
+	return tracing.HTTPMiddleware("gateway")
+}
 
 func RequestID() Middleware {
 	return func(next http.Handler) http.Handler {
@@ -38,6 +43,10 @@ func Logger(base *slog.Logger) Middleware {
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 			)
+
+			if traceID := tracing.TraceID(r.Context()); traceID != "" {
+				log = log.With("trace_id", traceID)
+			}
 
 			ctx := logger.ToContext(r.Context(), log)
 			next.ServeHTTP(w, r.WithContext(ctx))
