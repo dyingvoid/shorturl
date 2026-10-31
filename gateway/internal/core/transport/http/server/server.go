@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 
 	core_http_middleware "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/middleware"
 	"github.com/go-chi/chi/v5"
@@ -48,6 +49,11 @@ func New(
 			reg,
 			promhttp.HandlerOpts{},
 		))
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		s.metricsServer = &http.Server{
 			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort),
 			Handler: mux,

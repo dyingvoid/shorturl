@@ -9,16 +9,16 @@ scrape_configs:
 
   - job_name: 'gateway'
     static_configs:
-      - targets: ['gateway:9102']
+      - targets: ['gateway:9090']
 
   - job_name: 'user'
     static_configs:
-      - targets: ['user:9100']
+      - targets: ['user:9090']
 
   - job_name: 'url'
     static_configs:
-      - targets: ['url:9101']
+      - targets: ['url:9090']
 
   - job_name: 'analytics'
     static_configs:
-      - targets: ['analytics:9103']
+      - targets: ['analytics:9090']

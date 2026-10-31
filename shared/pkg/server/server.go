@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
@@ -72,6 +73,11 @@ func New(
 			reg,
 			promhttp.HandlerOpts{},
 		))
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		server.metricsServer = &http.Server{
 			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort()),
 			Handler: mux,

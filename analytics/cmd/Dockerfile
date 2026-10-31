@@ -25,6 +25,6 @@ WORKDIR /app
 
 COPY --from=builder /out/analytics /app/analytics
 
-EXPOSE 50053 9103
+EXPOSE 50053 9090
 
 ENTRYPOINT ["/app/analytics"]
