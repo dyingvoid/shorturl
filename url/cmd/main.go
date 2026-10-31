@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -15,12 +17,23 @@ import (
 	infrastructure_kafka "github.com/dyingvoid/urlshort/url/internal/infrastructure/kafka"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo"
 	mongo_repository_links "github.com/dyingvoid/urlshort/url/internal/infrastructure/mongo/links_repository"
+	infrastructure_prometheus "github.com/dyingvoid/urlshort/url/internal/infrastructure/prometheus"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/redis"
 	"github.com/dyingvoid/urlshort/url/internal/infrastructure/users_client"
 	"github.com/dyingvoid/urlshort/url/internal/service"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
+	log := logger.Init(logger.NewMust())
+	log.Warn("application starting")
+	if err := run(log); err != nil {
+		log.Error("url stopped with error", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
 	)
@@ -28,49 +41,55 @@ func main() {
 
 	cfg := config.NewMust()
 	time.Local = cfg.TimeZone
-	log := logger.Init(logger.NewMust())
-	log.Warn("application starting")
 
 	mongoCfg := mongo.NewMust()
 	mongoClient, err := mongo.Connect(ctx, mongoCfg)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer mongoClient.Disconnect(ctx)
 
 	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer redisClient.Close()
 
-	usersClient, err := users_client.Connect(ctx, users_client.NewMust())
+	usersClient, err := users_client.Connect(users_client.NewMust())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer usersClient.Close()
 
 	kafkaCfg := infrastructure_kafka.NewMust()
 	userViewProducer, err := infrastructure_kafka.NewUserViewProducer(log, kafkaCfg)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer userViewProducer.Close()
 
 	redisCache := redis.NewCache(redisClient, log)
 	linksRepository := mongo_repository_links.NewLinksRepository(mongoClient.Database(mongoCfg.DB))
 	if err := linksRepository.EnsureIndexes(ctx); err != nil {
-		panic(err)
+		return err
 	}
+
+	registry := prometheus.NewRegistry()
+	metrics, err := infrastructure_prometheus.NewMetrics(registry)
+	if err != nil {
+		return err
+	}
+
 	urlService := service.New(
 		cfg.URL, cfg.CreateURLAttempts, cfg.LinkCacheTTL,
-		usersClient, redisCache, linksRepository, userViewProducer, log,
+		usersClient, redisCache, linksRepository, userViewProducer, metrics, log,
 	)
 
-	s := server.New(cfg, log, "url")
+	s, err := server.New(ctx, cfg, log, "url", registry)
+	if err != nil {
+		return err
+	}
 	urlv1.RegisterURLServiceServer(s.GRPC(), handler.New(urlService))
 
-	if err := s.Run(ctx); err != nil {
-		log.Error(err.Error())
-	}
+	return s.Run(ctx)
 }

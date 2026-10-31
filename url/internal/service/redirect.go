@@ -34,7 +34,10 @@ func (s *Service) Redirect(
 	go func() {
 		if err := s.producer.ProduceUserView(userView); err != nil {
 			log.Error("produce user view", "error", err)
+			return
 		}
+
+		s.metrics.IncKafkaMessagesProduced()
 	}()
 
 	if !link.Active() {
@@ -42,6 +45,8 @@ func (s *Service) Redirect(
 	}
 
 	_ = s.cache.SetLink(ctx, link, s.linkCacheTTL)
+
+	s.metrics.IncRedirects()
 
 	return types.Sourced[string]{Value: link.OriginalURL, Origin: origin}, nil
 }

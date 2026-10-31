@@ -15,16 +15,20 @@ import (
 	"github.com/dyingvoid/shorturl/analytics/internal/handler"
 	clickhouseinfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/clickhouse"
 	kafkainfra "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/kafka"
+	infrastructure_prometheus "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/prometheus"
 	urlclient "github.com/dyingvoid/shorturl/analytics/internal/infrastructure/url_client"
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	analyticsv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/analytics/v1"
 	"github.com/dyingvoid/shorturl/shared/pkg/server"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	log := logger.Init(logger.NewMust())
+	log.Warn("application started")
 
-	if err := run(logger); err != nil {
-		logger.Error("analytics stopped with error", "error", err)
+	if err := run(log); err != nil {
+		log.Error("analytics stopped with error", "error", err)
 		os.Exit(1)
 	}
 }
@@ -74,23 +78,30 @@ func run(logger *slog.Logger) error {
 	}()
 
 	analyticsRepository := clickhouseinfra.NewRepository(clickHouseConn)
-	coreConfig := core.NewMust()
 
-	consumer := core.NewAnalyticsForwarder(
+	registry := prometheus.NewRegistry()
+	metrics, err := infrastructure_prometheus.NewMetrics(registry)
+	if err != nil {
+		return fmt.Errorf("create metrics: %w", err)
+	}
+
+	forwarder := core.NewAnalyticsForwarder(
 		logger,
 		reader,
 		analyticsRepository,
-		coreConfig.BatchSize,
-		coreConfig.BatchFlushInterval,
+		metrics,
 	)
 
 	analyticsService := core.NewService(
-		coreConfig,
+		cfg,
 		urlClient,
 		analyticsRepository,
 	)
 
-	s := server.New(cfg, logger, "analytics")
+	s, err := server.New(ctx, cfg, logger, "analytics", registry)
+	if err != nil {
+		return err
+	}
 	analyticsv1.RegisterAnalyticsServiceServer(
 		s.GRPC(),
 		handler.New(analyticsService),
@@ -100,11 +111,11 @@ func run(logger *slog.Logger) error {
 		"analytics starting",
 		"kafka_topic", kafkaConfig.Topic,
 		"kafka_group", kafkaConfig.GroupID,
-		"batch_size", coreConfig.BatchSize,
-		"batch_flush_interval", coreConfig.BatchFlushInterval,
-		"default_days", coreConfig.DefaultDays,
-		"max_days", coreConfig.MaxDays,
-		"top_referers", coreConfig.TopReferers,
+		"batch_size", kafkaConfig.BatchSize,
+		"batch_flush_interval", kafkaConfig.BatchFlushInterval,
+		"default_days", cfg.DefaultDays,
+		"max_days", cfg.MaxDays,
+		"top_referers", cfg.TopReferers,
 	)
 
 	serverCtx, stopServer := context.WithCancel(context.Background())
@@ -121,7 +132,7 @@ func run(logger *slog.Logger) error {
 	}()
 
 	go func() {
-		consumerErrCh <- consumer.Run(consumerCtx)
+		consumerErrCh <- forwarder.Run(consumerCtx)
 	}()
 
 	var (

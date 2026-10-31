@@ -10,17 +10,18 @@ import (
 
 type Config struct {
 	TimeZone              *time.Location
-	ServerPort            int           `envconfig:"USER_SERVICE_PORT" default:"50051"`
+	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50051"`
+	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
 	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
 }
 
 func New() (Config, error) {
 	var config Config
-	if err := envconfig.Process("", &config); err != nil {
+	if err := envconfig.Process("USER", &config); err != nil {
 		return Config{}, fmt.Errorf("process envconfig: %w", err)
 	}
 
-	tz := os.Getenv("TIME_ZONE")
+	tz := os.Getenv("USER_TIME_ZONE")
 	if tz == "" {
 		tz = "UTC"
 	}
@@ -46,6 +47,10 @@ func NewMust() Config {
 
 func (c Config) Port() int {
 	return c.ServerPort
+}
+
+func (c Config) MetricsPort() int {
+	return c.MetricsServerPort
 }
 
 func (c Config) ShutdownTimeout() time.Duration {

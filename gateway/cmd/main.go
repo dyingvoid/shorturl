@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +19,9 @@ import (
 	urlv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/url/v1"
 	userv1 "github.com/dyingvoid/shorturl/shared/pkg/proto/user/v1"
 	"github.com/dyingvoid/shorturl/shared/pkg/requestid"
+	"github.com/dyingvoid/shorturl/shared/pkg/tracing"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -34,6 +38,16 @@ import (
 // @name Authorization
 // @description Access token: "Bearer <token>".
 func main() {
+	log := logger.Init(logger.NewMust())
+	log.Warn("application started")
+
+	if err := run(log); err != nil {
+		log.Error("gateway stopped with error", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run(log *slog.Logger) error {
 	// TODO: dynamic swagger registration (port is static rn, not from env)
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM,
@@ -42,40 +56,66 @@ func main() {
 
 	cfg := config.NewMust()
 	httpConfig := core_http_server.MustNewConfig()
-	log := logger.Init(logger.NewMust())
-	log.Info("application starting")
+
+	traceProvider, err := tracing.New(ctx, log, "gateway")
+	if err != nil {
+		return fmt.Errorf("init tracing: %w", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			httpConfig.ShutdownTimeout,
+		)
+		defer cancel()
+
+		if err := traceProvider.Shutdown(shutdownCtx); err != nil {
+			log.Error("shutdown tracing", "error", err)
+		}
+	}()
 
 	usersConn, err := grpc.NewClient(
 		cfg.UsersServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
-		log.Error("init users service client", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init users service client: %w", err)
 	}
-	defer usersConn.Close()
+	defer func() {
+		if err := usersConn.Close(); err != nil {
+			log.Error("close users service client", "error", err)
+		}
+	}()
 
 	urlsConn, err := grpc.NewClient(
 		cfg.URLServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(requestid.UnaryClientInterceptor()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
-		log.Error("init URL service client", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init URL service client: %w", err)
 	}
-	defer urlsConn.Close()
+	defer func() {
+		if err := urlsConn.Close(); err != nil {
+			log.Error("close URL service client", "error", err)
+		}
+	}()
 
 	analyticsConn, err := grpc.NewClient(
 		cfg.AnalyticsServiceAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(tracing.GRPCClientHandler()),
 	)
 	if err != nil {
-		log.Error("init analytics service client", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init analytics service client: %w", err)
 	}
-	defer analyticsConn.Close()
+	defer func() {
+		if err := analyticsConn.Close(); err != nil {
+			log.Error("close analytics service client", "error", err)
+		}
+	}()
 
 	usersService := userv1.NewUserServiceClient(usersConn)
 	urlsService := urlv1.NewURLServiceClient(urlsConn)
@@ -86,7 +126,10 @@ func main() {
 	analyticsHTTP := analytics_transport_http.NewAnalyticsHTTPHandler(analyticsService, authHTTP.AuthMiddleware)
 	urlRoutes := urlsHTTP.Routes()
 
-	srv := core_http_server.New(httpConfig, log,
+	registry := prometheus.NewRegistry()
+	srv, err := core_http_server.New(
+		httpConfig, log, registry,
+		core_http_middleware.Tracing(),
 		core_http_middleware.RequestID(),
 		core_http_middleware.Logger(log),
 		core_http_middleware.Trace(),
@@ -94,6 +137,9 @@ func main() {
 		core_http_middleware.CORS(httpConfig.AllowedOrigins),
 		chimiddleware.Timeout(httpConfig.RequestTimeout),
 	)
+	if err != nil {
+		return fmt.Errorf("create HTTP server: %w", err)
+	}
 
 	v1 := core_http_server.NewVersionRouter(core_http_server.V1)
 	v1.RegisterRoutes(authHTTP.Routes()...)
@@ -104,8 +150,5 @@ func main() {
 	srv.RegisterRoutes(urlRoutes[1]...)
 	srv.RegisterSwagger()
 
-	if err := srv.Run(ctx); err != nil {
-		log.Error("run HTTP server", "error", err)
-		os.Exit(1)
-	}
+	return srv.Run(ctx)
 }

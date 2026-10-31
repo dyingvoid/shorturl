@@ -52,6 +52,7 @@ func (s *Service) CreateShortURL(
 		switch {
 		case err == nil:
 			committed = true
+			s.metrics.IncLinksCreated()
 			return &link, nil
 		case errors.Is(err, domain_errors.ErrUniqueViolation):
 			continue

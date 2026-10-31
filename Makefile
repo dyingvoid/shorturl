@@ -43,7 +43,9 @@ lint:
 	golangci-lint run ./user/...
 
 up:
-	docker compose up -d
+	docker compose up -d --build
+	@$(MAKE) migrate-up
+	@$(MAKE) clickhouse-migrate-up
 
 down:
 	docker compose down --remove-orphans
@@ -138,6 +140,8 @@ analytics-run:
 	go run ./cmd
 
 run-all: 
+	@$(MAKE) migrate-up
+	@$(MAKE) clickhouse-migrate-up
 	@$(MAKE) user-run & \
 	$(MAKE) url-run & \
 	$(MAKE) analytics-run & \

@@ -1,66 +1,11 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
-	"github.com/dyingvoid/shorturl/user/internal/domain"
 	"github.com/google/uuid"
 )
-
-type PasswordHasher interface {
-	Hash(password string) (string, error)
-	Compare(hash, password string) error
-}
-
-type TokenService interface {
-	Issue(user domain.User, session domain.Session) (domain.TokenPair, error)
-	RefreshAccess(claims domain.TokenClaims) (string, error)
-	ParseAccess(token string) (domain.TokenClaims, error)
-	ParseRefresh(token string) (domain.TokenClaims, error)
-	AccessTTL() time.Duration
-	RefreshTTL() time.Duration
-}
-
-type UsersRepository interface {
-	CreateUser(
-		ctx context.Context,
-		email domain.Email,
-		passwordHash string,
-	) (domain.User, error)
-	GetUserByEmail(
-		ctx context.Context,
-		email domain.Email,
-	) (domain.User, string, error)
-	GetLimit(
-		ctx context.Context,
-		userID uuid.UUID,
-	) (int, error)
-}
-
-type SessionsRepository interface {
-	CreateSession(
-		ctx context.Context,
-		userID uuid.UUID,
-		expiresAt time.Time,
-	) (domain.Session, error)
-	GetSession(
-		ctx context.Context,
-		id uuid.UUID,
-	) (domain.Session, error)
-	RevokeSession(
-		ctx context.Context,
-		id uuid.UUID,
-	) error
-}
-
-type Cache interface {
-	Set(ctx context.Context, key string, value any, ttl time.Duration) error
-	Get(ctx context.Context, key string) ([]byte, error)
-	Delete(ctx context.Context, key string) error
-}
 
 type UsersService struct {
 	passwordHasher     PasswordHasher
