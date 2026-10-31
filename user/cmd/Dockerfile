@@ -19,11 +19,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -trimpath -ldflags="-s -w"
 
 FROM alpine:3.22
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+    && adduser -D -u 10001 app
 
 WORKDIR /app
 
-COPY --from=builder /out/user /app/user
+COPY --from=builder --chown=app:app /out/user /app/user
+
+USER app
 
 EXPOSE 50051 9090
 
