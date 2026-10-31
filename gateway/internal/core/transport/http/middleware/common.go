@@ -39,6 +39,7 @@ func Logger(base *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := base.With(
+				// TODO: perhaps remove request_id as there is trace_id
 				slog.String("request_id", r.Header.Get(requestid.Header)),
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),

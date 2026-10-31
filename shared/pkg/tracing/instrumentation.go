@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"context"
 	"net/http"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -15,6 +16,24 @@ func GRPCServerHandler() stats.Handler {
 
 func GRPCClientHandler() stats.Handler {
 	return otelgrpc.NewClientHandler()
+}
+
+func TraceID(ctx context.Context) string {
+	spanContext := trace.SpanContextFromContext(ctx)
+	if !spanContext.IsValid() {
+		return ""
+	}
+
+	return spanContext.TraceID().String()
+}
+
+func SpanID(ctx context.Context) string {
+	spanContext := trace.SpanContextFromContext(ctx)
+	if !spanContext.IsValid() {
+		return ""
+	}
+
+	return spanContext.SpanID().String()
 }
 
 func HTTPMiddleware(operation string) func(http.Handler) http.Handler {

@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Provider struct {
@@ -99,22 +98,4 @@ func (p *Provider) Shutdown(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func TraceID(ctx context.Context) string {
-	spanContext := trace.SpanContextFromContext(ctx)
-	if !spanContext.IsValid() {
-		return ""
-	}
-
-	return spanContext.TraceID().String()
-}
-
-func SpanID(ctx context.Context) string {
-	spanContext := trace.SpanContextFromContext(ctx)
-	if !spanContext.IsValid() {
-		return ""
-	}
-
-	return spanContext.SpanID().String()
 }

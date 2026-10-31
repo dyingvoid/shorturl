@@ -26,6 +26,7 @@ func Logger(log *slog.Logger) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		l := log.With(
+			// TODO: perhaps get rid of request_id as there is trace_id
 			"request_id", requestIDFromContext(ctx),
 			"method", info.FullMethod,
 		)
