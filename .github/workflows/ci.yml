@@ -14,9 +14,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  GOFLAGS: -mod=mod
-
 jobs:
   lint:
     name: lint (${{ matrix.module }})
