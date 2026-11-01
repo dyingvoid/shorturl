@@ -23,6 +23,6 @@ func (h *Handler) GetLimit(ctx context.Context, req *userv1.GetLimitRequest) (*u
 	}
 
 	return &userv1.GetLimitResponse{
-		LinksLimit: int32(limit),
+		LinksLimit: limit,
 	}, nil
 }

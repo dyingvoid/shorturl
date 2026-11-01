@@ -21,7 +21,6 @@ linters:
   settings:
     revive:
       rules:
-        - name: exported
         - name: var-naming
         - name: indent-error-flow
   exclusions:

@@ -122,22 +122,22 @@ func (_c *MockUsersRepository_CreateUser_Call) RunAndReturn(run func(ctx context
 }
 
 // GetLimit provides a mock function for the type MockUsersRepository
-func (_mock *MockUsersRepository) GetLimit(ctx context.Context, userID uuid.UUID) (int, error) {
+func (_mock *MockUsersRepository) GetLimit(ctx context.Context, userID uuid.UUID) (int32, error) {
 	ret := _mock.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetLimit")
 	}
 
-	var r0 int
+	var r0 int32
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int32, error)); ok {
 		return returnFunc(ctx, userID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) int); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) int32); ok {
 		r0 = returnFunc(ctx, userID)
 	} else {
-		r0 = ret.Get(0).(int)
+		r0 = ret.Get(0).(int32)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
 		r1 = returnFunc(ctx, userID)
@@ -177,12 +177,12 @@ func (_c *MockUsersRepository_GetLimit_Call) Run(run func(ctx context.Context, u
 	return _c
 }
 
-func (_c *MockUsersRepository_GetLimit_Call) Return(n int, err error) *MockUsersRepository_GetLimit_Call {
+func (_c *MockUsersRepository_GetLimit_Call) Return(n int32, err error) *MockUsersRepository_GetLimit_Call {
 	_c.Call.Return(n, err)
 	return _c
 }
 
-func (_c *MockUsersRepository_GetLimit_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID) (int, error)) *MockUsersRepository_GetLimit_Call {
+func (_c *MockUsersRepository_GetLimit_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID) (int32, error)) *MockUsersRepository_GetLimit_Call {
 	_c.Call.Return(run)
 	return _c
 }

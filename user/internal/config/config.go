@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	TimeZone              *time.Location
-	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50051"`
-	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
-	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
+	TimeZone                       *time.Location
+	ServerPort                     int           `envconfig:"SERVICE_PORT" default:"50051"`
+	MetricsServerPort              int           `envconfig:"METRICS_PORT" default:"9090"`
+	ServerShutdownTimeout          time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
+	MetricsServerReadHeaderTimeout time.Duration `envconfig:"METRICS_READ_HEADER_TIMEOUT" default:"5s"`
 }
 
 func New() (Config, error) {
@@ -55,4 +56,8 @@ func (c Config) MetricsPort() int {
 
 func (c Config) ShutdownTimeout() time.Duration {
 	return c.ServerShutdownTimeout
+}
+
+func (c Config) MetricsReadHeaderTimeout() time.Duration {
+	return c.MetricsServerReadHeaderTimeout
 }

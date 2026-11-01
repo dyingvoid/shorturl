@@ -20,7 +20,7 @@ func (m userModel) ToDomain() domain.User {
 }
 
 type subscriptionModel struct {
-	LinksLimit int `db:"links_limit"`
+	LinksLimit int32 `db:"links_limit"`
 }
 
 type sessionModel struct {

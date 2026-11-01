@@ -40,7 +40,10 @@ test-int:
 	go test -count=1 -timeout=15m -tags=integration ./gateway/integration/...
 
 lint:
-	golangci-lint run ./user/...
+	@for module in shared user url gateway analytics; do \
+		echo "linting $$module"; \
+		(cd $$module && golangci-lint run ./...) || exit 1; \
+	done
 
 up:
 	docker compose up -d --build

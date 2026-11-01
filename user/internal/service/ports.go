@@ -35,7 +35,7 @@ type UsersRepository interface {
 	GetLimit(
 		ctx context.Context,
 		userID uuid.UUID,
-	) (int, error)
+	) (int32, error)
 }
 
 type SessionsRepository interface {
@@ -58,8 +58,4 @@ type Cache interface {
 	Set(ctx context.Context, key string, value any, ttl time.Duration) error
 	Get(ctx context.Context, key string) ([]byte, error)
 	Delete(ctx context.Context, key string) error
-}
-
-type Metrics interface {
-	
 }
