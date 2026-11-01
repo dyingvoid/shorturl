@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - shared
+          - user
+          - url
+          - gateway
+          - analytics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: Download dependencies
+        working-directory: ${{ matrix.module }}
+        run: go mod download
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.15.0
+          working-directory: ${{ matrix.module }}
+
+  test:
+    name: test (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - shared
+          - user
+          - url
+          - gateway
+          - analytics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: Download dependencies
+        working-directory: ${{ matrix.module }}
+        run: go mod download
+
+      - name: Run tests
+        working-directory: ${{ matrix.module }}
+        run: go test -race -count=1 ./...

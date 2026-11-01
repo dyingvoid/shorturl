@@ -6,27 +6,61 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 
 	core_http_middleware "github.com/dyingvoid/shorturl/gateway/internal/core/transport/http/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const maxBodyBytes = 10 << 20
 
 type Server struct {
-	router     chi.Router
-	cfg        Config
-	log        *slog.Logger
-	middleware []core_http_middleware.Middleware
+	router        chi.Router
+	metricsServer *http.Server
+	cfg           Config
+	log           *slog.Logger
+	middleware    []core_http_middleware.Middleware
 }
 
-func New(cfg Config, log *slog.Logger, middleware ...core_http_middleware.Middleware) *Server {
-	return &Server{
+func New(
+	cfg Config,
+	log *slog.Logger,
+	reg MetricsRegistry,
+	middleware ...core_http_middleware.Middleware,
+) (*Server, error) {
+	s := &Server{
 		router:     chi.NewRouter(),
 		cfg:        cfg,
 		log:        log,
 		middleware: middleware,
 	}
+
+	if reg != nil {
+		m, err := newMetrics(reg)
+		if err != nil {
+			return nil, fmt.Errorf("create metrics: %w", err)
+		}
+
+		s.middleware = append(s.middleware, m.Middleware())
+
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.HandlerFor(
+			reg,
+			promhttp.HandlerOpts{},
+		))
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		s.metricsServer = &http.Server{
+			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort),
+			Handler: mux,
+		}
+	}
+
+	return s, nil
 }
 
 func (s *Server) RegisterRoutes(routes ...Route) {
@@ -57,33 +91,82 @@ func (s *Server) Run(ctx context.Context) error {
 		IdleTimeout:       s.cfg.IdleTimeout,
 	}
 
-	errCh := make(chan error, 1)
+	httpErrCh := make(chan error, 1)
+	metricsErrCh := make(chan error, 1)
+
 	go func() {
 		s.log.Info("starting HTTP server", "addr", s.cfg.Address())
-		errCh <- srv.ListenAndServe()
+		if err := srv.ListenAndServe(); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
+			httpErrCh <- fmt.Errorf("listen and serve HTTP: %w", err)
+		}
 	}()
 
+	if s.metricsServer != nil {
+		go func() {
+			s.log.Info(
+				"starting metrics server",
+				"addr", s.metricsServer.Addr,
+			)
+			if err := s.metricsServer.ListenAndServe(); err != nil &&
+				!errors.Is(err, http.ErrServerClosed) {
+				metricsErrCh <- fmt.Errorf(
+					"listen and serve metrics: %w",
+					err,
+				)
+			}
+		}()
+	}
+
 	select {
-	case err := <-errCh:
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("listen and serve HTTP: %w", err)
-		}
-		return nil
+	case err := <-httpErrCh:
+		return errors.Join(err, s.stop(srv))
+
+	case err := <-metricsErrCh:
+		return errors.Join(err, s.stop(srv))
+
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(
-			context.Background(),
-			s.cfg.ShutdownTimeout,
-		)
-		defer cancel()
+		return s.stop(srv)
+	}
+}
 
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			_ = srv.Close()
-			return fmt.Errorf("shutdown HTTP server: %w", err)
-		}
+func (s *Server) stop(srv *http.Server) error {
+	s.log.Info("shutdown HTTP server")
 
-		s.log.Info("HTTP server stopped")
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		s.cfg.ShutdownTimeout,
+	)
+	defer cancel()
+
+	httpErr := s.httpStop(shutdownCtx, srv)
+	metricsErr := s.metricsStop(shutdownCtx)
+
+	s.log.Info("HTTP server stopped")
+
+	return errors.Join(httpErr, metricsErr)
+}
+
+func (s *Server) httpStop(ctx context.Context, srv *http.Server) error {
+	if err := srv.Shutdown(ctx); err != nil {
+		_ = srv.Close()
+		return fmt.Errorf("shutdown HTTP server: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) metricsStop(ctx context.Context) error {
+	if s.metricsServer == nil {
 		return nil
 	}
+
+	if err := s.metricsServer.Shutdown(ctx); err != nil {
+		_ = s.metricsServer.Close()
+		return fmt.Errorf("shutdown metrics server: %w", err)
+	}
+
+	return nil
 }
 
 func registerRoutes(router chi.Router, routes ...Route) {

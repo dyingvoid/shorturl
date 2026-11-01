@@ -4,16 +4,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/dyingvoid/shorturl/analytics/internal/config"
 	"github.com/dyingvoid/shorturl/analytics/internal/domain"
 )
 
 type Service struct {
-	cfg       Config
+	cfg       config.Config
 	urls      URLService
 	analytics AnalyticsRepository
 }
 
-func NewService(cfg Config, urls URLService, analytics AnalyticsRepository) *Service {
+func NewService(cfg config.Config, urls URLService, analytics AnalyticsRepository) *Service {
 	return &Service{
 		cfg:       cfg,
 		urls:      urls,

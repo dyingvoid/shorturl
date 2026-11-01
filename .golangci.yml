@@ -1,17 +1,16 @@
+version: "2"
+
 run:
   timeout: 3m
-  go: "1.23"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofmt
-    - goimports
     - revive
     - gosec
     - bodyclose
@@ -19,18 +18,20 @@ linters:
     - sqlclosecheck
     - misspell
     - unparam
-
-linters-settings:
-  revive:
-    severity: warning
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: var-naming
+        - name: indent-error-flow
+  exclusions:
     rules:
-      - name: exported
-      - name: var-naming
-      - name: indent-error-flow
+      - path: _test\.go
+        linters:
+          - gosec
+          - unparam
 
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
-        - unparam
+formatters:
+  enable:
+    - gofmt
+    - goimports

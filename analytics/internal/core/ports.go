@@ -10,9 +10,14 @@ type MsgBatch[T any] struct {
 }
 
 type Fetcher[T any] interface {
-	Fetch(ctx context.Context, limit int) (MsgBatch[T], error)
+	Fetch(ctx context.Context) (MsgBatch[T], error)
 }
 
 type Writer[T any] interface {
 	WriteBatch(ctx context.Context, events []T) error
+}
+
+type Metrics interface {
+	IncKafkaMessagesConsumed(count int)
+	ObserveClickHouseBatchInsertDuration(seconds float64)
 }
