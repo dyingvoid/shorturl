@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/dyingvoid/shorturl/shared/pkg/logger"
 	"github.com/dyingvoid/urlshort/url/internal/domain"
 	domain_errors "github.com/dyingvoid/urlshort/url/internal/domain/errors"
 )
@@ -33,8 +34,13 @@ func (s *Service) CreateShortURL(
 
 	committed := false
 	defer func() {
-		if !committed {
-			_, _ = s.cache.DecLinkCounter(ctx, userID)
+		if committed {
+			return
+		}
+
+		rollbackCtx := context.WithoutCancel(ctx)
+		if _, err := s.cache.DecLinkCounter(rollbackCtx, userID); err != nil {
+			logger.FromContext(ctx).Error("rollback link counter", "error", err, "user_id", userID)
 		}
 	}()
 
