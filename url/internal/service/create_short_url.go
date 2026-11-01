@@ -69,27 +69,20 @@ func (s *Service) updateLinkCounter(
 	userID string,
 ) (int, error) {
 	linkCounter, err := s.cache.GetLinkCounter(ctx, userID)
-	if err != nil {
-		if !errors.Is(err, domain_errors.ErrNotFound) {
-			return 0, err
-		}
-
-		linkCounter, err = s.links.Count(ctx, userID)
-		if err != nil {
-			return 0, fmt.Errorf("failed to count links: %w", err)
-		}
-
-		if err := s.cache.SetLinkCounter(ctx, userID, linkCounter); err != nil {
-			return 0, err
-		}
+	if err == nil {
+		return s.cache.IncLinkCounter(ctx, userID)
 	}
 
-	linkCounter, err = s.cache.IncLinkCounter(ctx, userID)
-	if err != nil {
+	if !errors.Is(err, domain_errors.ErrNotFound) {
 		return 0, err
 	}
 
-	return linkCounter, nil
+	linkCounter, err = s.links.Count(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count links: %w", err)
+	}
+
+	return s.cache.SetIncCounterAtomic(ctx, userID, linkCounter)
 }
 
 func validateLink(rawURL string) error {

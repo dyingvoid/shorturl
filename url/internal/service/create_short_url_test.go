@@ -191,8 +191,7 @@ func TestCreateShortURL_CounterCacheMiss_InitializesFromRepository(t *testing.T)
 		Return(0, fmt.Errorf("cache miss: %w", domain_errors.ErrNotFound)).
 		Once()
 	links.EXPECT().Count(mock.Anything, testUserID).Return(3, nil).Once()
-	cache.EXPECT().SetLinkCounter(mock.Anything, testUserID, 3).Return(nil).Once()
-	cache.EXPECT().IncLinkCounter(mock.Anything, testUserID).Return(4, nil).Once()
+	cache.EXPECT().SetIncCounterAtomic(mock.Anything, testUserID, 3).Return(4, nil).Once()
 	links.EXPECT().
 		Insert(mock.Anything, mock.AnythingOfType("*domain.Link")).
 		Return(nil).
