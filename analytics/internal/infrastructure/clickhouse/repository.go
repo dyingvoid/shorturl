@@ -95,7 +95,9 @@ func (r *Repository) ClicksByDay(
 	if err != nil {
 		return nil, fmt.Errorf("query clicks by day: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	result := make([]domain.DayClicks, 0)
 	for rows.Next() {
@@ -142,7 +144,9 @@ func (r *Repository) TopReferers(
 	if err != nil {
 		return nil, fmt.Errorf("query top referers: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	result := make([]domain.RefererClicks, 0)
 	for rows.Next() {

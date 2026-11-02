@@ -89,7 +89,9 @@ func (r *LinksRepository) ListByUser(
 	if err != nil {
 		return nil, fmt.Errorf("link find: %w", mongo_errors.MapError(err))
 	}
-	defer findCursor.Close(ctx)
+	defer func() {
+		_ = findCursor.Close(ctx)
+	}()
 
 	var models []linkModel
 	if err := findCursor.All(ctx, &models); err != nil {

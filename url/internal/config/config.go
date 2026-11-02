@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	TimeZone              *time.Location
-	CreateURLAttempts     int           `envconfig:"CREATE_ATTEMPTS" default:"3"`
-	LinkCacheTTL          time.Duration `envconfig:"LINK_CACHE_TTL" default:"5m"`
-	ServerPort            int           `envconfig:"SERVICE_PORT" default:"50051"`
-	MetricsServerPort     int           `envconfig:"METRICS_PORT" default:"9090"`
-	ServerShutdownTimeout time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
-	URL                   string        `envconfig:"URL" default:"example.com"`
+	TimeZone                       *time.Location
+	CreateURLAttempts              int           `envconfig:"CREATE_ATTEMPTS" default:"3"`
+	LinkCacheTTL                   time.Duration `envconfig:"LINK_CACHE_TTL" default:"5m"`
+	ServerPort                     int           `envconfig:"SERVICE_PORT" default:"50051"`
+	MetricsServerPort              int           `envconfig:"METRICS_PORT" default:"9090"`
+	ServerShutdownTimeout          time.Duration `envconfig:"GRPC_SHUTDOWN_TIMEOUT" default:"10s"`
+	MetricsServerReadHeaderTimeout time.Duration `envconfig:"METRICS_READ_HEADER_TIMEOUT" default:"5s"`
+	URL                            string        `envconfig:"URL" default:"example.com"`
 }
 
 func New() (Config, error) {
@@ -58,4 +59,8 @@ func (c Config) MetricsPort() int {
 
 func (c Config) ShutdownTimeout() time.Duration {
 	return c.ServerShutdownTimeout
+}
+
+func (c Config) MetricsReadHeaderTimeout() time.Duration {
+	return c.MetricsServerReadHeaderTimeout
 }

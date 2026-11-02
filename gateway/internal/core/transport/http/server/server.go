@@ -55,8 +55,9 @@ func New(
 		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		s.metricsServer = &http.Server{
-			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort),
-			Handler: mux,
+			Addr:              fmt.Sprintf(":%d", cfg.MetricsPort),
+			Handler:           mux,
+			ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 		}
 	}
 

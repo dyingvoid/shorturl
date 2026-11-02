@@ -53,7 +53,11 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Error("close redis client", "error", err)
+		}
+	}()
 
 	redisCache := redis.NewCache(redisClient, log)
 

@@ -97,7 +97,7 @@ func (r *UsersRepository) GetUserByEmail(
 func (r *UsersRepository) GetLimit(
 	ctx context.Context,
 	userID uuid.UUID,
-) (int, error) {
+) (int32, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 

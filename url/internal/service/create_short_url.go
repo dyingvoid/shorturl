@@ -74,7 +74,7 @@ func (s *Service) updateLinkCounter(
 	ctx context.Context,
 	userID string,
 ) (int, error) {
-	linkCounter, err := s.cache.GetLinkCounter(ctx, userID)
+	_, err := s.cache.GetLinkCounter(ctx, userID)
 	if err == nil {
 		return s.cache.IncLinkCounter(ctx, userID)
 	}
@@ -83,7 +83,7 @@ func (s *Service) updateLinkCounter(
 		return 0, err
 	}
 
-	linkCounter, err = s.links.Count(ctx, userID)
+	linkCounter, err := s.links.Count(ctx, userID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count links: %w", err)
 	}

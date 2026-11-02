@@ -10,7 +10,7 @@ import (
 func (s *UsersService) GetLimit(
 	ctx context.Context,
 	userID uuid.UUID,
-) (int, error) {
+) (int32, error) {
 	// TODO: cache limit
 	limit, err := s.usersRepository.GetLimit(ctx, userID)
 	if err != nil {

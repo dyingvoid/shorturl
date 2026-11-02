@@ -30,6 +30,7 @@ type Server struct {
 type Config interface {
 	Port() int
 	MetricsPort() int
+	MetricsReadHeaderTimeout() time.Duration
 	ShutdownTimeout() time.Duration
 }
 
@@ -79,8 +80,9 @@ func New(
 		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		server.metricsServer = &http.Server{
-			Addr:    fmt.Sprintf(":%d", cfg.MetricsPort()),
-			Handler: mux,
+			Addr:              fmt.Sprintf(":%d", cfg.MetricsPort()),
+			Handler:           mux,
+			ReadHeaderTimeout: cfg.MetricsReadHeaderTimeout(),
 		}
 	}
 

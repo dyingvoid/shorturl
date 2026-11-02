@@ -47,26 +47,42 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	defer mongoClient.Disconnect(ctx)
+	defer func() {
+		if err := mongoClient.Disconnect(ctx); err != nil {
+			log.Error("disconnect mongo", "error", err)
+		}
+	}()
 
 	redisClient, err := shared_redis.New(ctx, redis.NewMust())
 	if err != nil {
 		return err
 	}
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Error("close redis client", "error", err)
+		}
+	}()
 
 	usersClient, err := users_client.Connect(users_client.NewMust())
 	if err != nil {
 		return err
 	}
-	defer usersClient.Close()
+	defer func() {
+		if err := usersClient.Close(); err != nil {
+			log.Error("close users service client", "error", err)
+		}
+	}()
 
 	kafkaCfg := infrastructure_kafka.NewMust()
 	userViewProducer, err := infrastructure_kafka.NewUserViewProducer(log, kafkaCfg)
 	if err != nil {
 		return err
 	}
-	defer userViewProducer.Close()
+	defer func() {
+		if err := userViewProducer.Close(); err != nil {
+			log.Error("close user view producer", "error", err)
+		}
+	}()
 
 	redisCache := redis.NewCache(redisClient, log)
 	linksRepository := mongo_repository_links.NewLinksRepository(mongoClient.Database(mongoCfg.DB))

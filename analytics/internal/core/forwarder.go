@@ -74,7 +74,9 @@ func (f AnalyticsForwarder[T]) runOnce(ctx context.Context) error {
 	}
 
 	f.metrics.IncKafkaMessagesConsumed(len(batch.Messages))
-	batch.Ack(ctx)
+	if err := batch.Ack(ctx); err != nil {
+		f.log.Error("ack batch", "error", err)
+	}
 	f.log.Debug("batch processed", "records", len(batch.Messages))
 	return nil
 }

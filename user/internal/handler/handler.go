@@ -37,7 +37,7 @@ type UsersService interface {
 	GetLimit(
 		ctx context.Context,
 		userID uuid.UUID,
-	) (int, error)
+	) (int32, error)
 }
 
 func New(usersService UsersService) *Handler {
