@@ -146,6 +146,39 @@ func TestCreateShortURL_InsertFailure_RollsBackCounter(t *testing.T) {
 	assert.Nil(t, got)
 }
 
+func TestCreateShortURL_CanceledContext_RollsBackCounter(t *testing.T) {
+	t.Parallel()
+
+	usersService := mocks.NewMockUsersService(t)
+	cache := mocks.NewMockCache(t)
+	links := mocks.NewMockLinksRepository(t)
+
+	insertErr := errors.New("request canceled")
+
+	usersService.EXPECT().GetLimit(mock.Anything, testUserID).Return(10, nil).Once()
+	cache.EXPECT().GetLinkCounter(mock.Anything, testUserID).Return(4, nil).Once()
+	cache.EXPECT().IncLinkCounter(mock.Anything, testUserID).Return(5, nil).Once()
+	links.EXPECT().
+		Insert(mock.Anything, mock.AnythingOfType("*domain.Link")).
+		Return(insertErr).
+		Once()
+	cache.EXPECT().
+		DecLinkCounter(mock.MatchedBy(func(ctx context.Context) bool { return ctx.Err() == nil }), testUserID).
+		Return(4, nil).
+		Once()
+
+	svc := newTestService(t, usersService, cache, links)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	got, err := svc.CreateShortURL(ctx, testUserID, testOriginalURL, nil)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, insertErr)
+	assert.Nil(t, got)
+}
+
 func TestCreateShortURL_UniqueViolation_RetriesWithoutRollback(t *testing.T) {
 	t.Parallel()
 
@@ -191,8 +224,7 @@ func TestCreateShortURL_CounterCacheMiss_InitializesFromRepository(t *testing.T)
 		Return(0, fmt.Errorf("cache miss: %w", domain_errors.ErrNotFound)).
 		Once()
 	links.EXPECT().Count(mock.Anything, testUserID).Return(3, nil).Once()
-	cache.EXPECT().SetLinkCounter(mock.Anything, testUserID, 3).Return(nil).Once()
-	cache.EXPECT().IncLinkCounter(mock.Anything, testUserID).Return(4, nil).Once()
+	cache.EXPECT().SetIncCounterAtomic(mock.Anything, testUserID, 3).Return(4, nil).Once()
 	links.EXPECT().
 		Insert(mock.Anything, mock.AnythingOfType("*domain.Link")).
 		Return(nil).
