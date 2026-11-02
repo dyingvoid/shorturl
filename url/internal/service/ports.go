@@ -19,11 +19,11 @@ type Cache interface {
 		ctx context.Context,
 		userID string,
 	) (int, error)
-	SetLinkCounter(
+	SetIncCounterAtomic(
 		ctx context.Context,
 		userID string,
 		val int,
-	) error
+	) (int, error)
 	IncLinkCounter(
 		ctx context.Context,
 		userID string,

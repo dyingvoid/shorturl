@@ -47,17 +47,23 @@ func (c *Cache) GetLinkCounter(ctx context.Context, userID string) (int, error) 
 	return value, nil
 }
 
-func (c *Cache) SetLinkCounter(ctx context.Context, userID string, val int) error {
+func (c *Cache) SetIncCounterAtomic(ctx context.Context, userID string, val int) (int, error) {
 	key := linkCounterKey(userID)
+	script := `
+	if redis.call("EXISTS", KEYS[1]) == 0 then
+		redis.call("SET", KEYS[1], ARGV[1])
+	end
+	return redis.call("INCR", KEYS[1])`
 
-	if err := c.client.Set(ctx, key, val, 0).Err(); err != nil {
-		wrapped := fmt.Errorf("set cache key '%s': %w", key, err)
-		c.logger.Error("set cache key", "error", wrapped, "key", key)
+	value, err := c.client.Eval(ctx, script, []string{key}, val).Int()
+	if err != nil {
+		wrapped := fmt.Errorf("set and increment cache key '%s': %w", key, err)
+		c.logger.Error("set and increment cache key", "error", wrapped, "key", key)
 
-		return wrapped
+		return 0, wrapped
 	}
 
-	return nil
+	return value, nil
 }
 
 func (c *Cache) IncLinkCounter(ctx context.Context, userID string) (int, error) {

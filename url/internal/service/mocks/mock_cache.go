@@ -372,6 +372,78 @@ func (_c *MockCache_IncLinkCounter_Call) RunAndReturn(run func(ctx context.Conte
 	return _c
 }
 
+// SetIncCounterAtomic provides a mock function for the type MockCache
+func (_mock *MockCache) SetIncCounterAtomic(ctx context.Context, userID string, val int) (int, error) {
+	ret := _mock.Called(ctx, userID, val)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetIncCounterAtomic")
+	}
+
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int) (int, error)); ok {
+		return returnFunc(ctx, userID, val)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int) int); ok {
+		r0 = returnFunc(ctx, userID, val)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+		r1 = returnFunc(ctx, userID, val)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockCache_SetIncCounterAtomic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetIncCounterAtomic'
+type MockCache_SetIncCounterAtomic_Call struct {
+	*mock.Call
+}
+
+// SetIncCounterAtomic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - val int
+func (_e *MockCache_Expecter) SetIncCounterAtomic(ctx any, userID any, val any) *MockCache_SetIncCounterAtomic_Call {
+	return &MockCache_SetIncCounterAtomic_Call{Call: _e.mock.On("SetIncCounterAtomic", ctx, userID, val)}
+}
+
+func (_c *MockCache_SetIncCounterAtomic_Call) Run(run func(ctx context.Context, userID string, val int)) *MockCache_SetIncCounterAtomic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCache_SetIncCounterAtomic_Call) Return(n int, err error) *MockCache_SetIncCounterAtomic_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockCache_SetIncCounterAtomic_Call) RunAndReturn(run func(ctx context.Context, userID string, val int) (int, error)) *MockCache_SetIncCounterAtomic_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetLink provides a mock function for the type MockCache
 func (_mock *MockCache) SetLink(ctx context.Context, link *domain.Link, ttl time.Duration) error {
 	ret := _mock.Called(ctx, link, ttl)
@@ -431,69 +503,6 @@ func (_c *MockCache_SetLink_Call) Return(err error) *MockCache_SetLink_Call {
 }
 
 func (_c *MockCache_SetLink_Call) RunAndReturn(run func(ctx context.Context, link *domain.Link, ttl time.Duration) error) *MockCache_SetLink_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SetLinkCounter provides a mock function for the type MockCache
-func (_mock *MockCache) SetLinkCounter(ctx context.Context, userID string, val int) error {
-	ret := _mock.Called(ctx, userID, val)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SetLinkCounter")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int) error); ok {
-		r0 = returnFunc(ctx, userID, val)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockCache_SetLinkCounter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLinkCounter'
-type MockCache_SetLinkCounter_Call struct {
-	*mock.Call
-}
-
-// SetLinkCounter is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID string
-//   - val int
-func (_e *MockCache_Expecter) SetLinkCounter(ctx any, userID any, val any) *MockCache_SetLinkCounter_Call {
-	return &MockCache_SetLinkCounter_Call{Call: _e.mock.On("SetLinkCounter", ctx, userID, val)}
-}
-
-func (_c *MockCache_SetLinkCounter_Call) Run(run func(ctx context.Context, userID string, val int)) *MockCache_SetLinkCounter_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 int
-		if args[2] != nil {
-			arg2 = args[2].(int)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockCache_SetLinkCounter_Call) Return(err error) *MockCache_SetLinkCounter_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockCache_SetLinkCounter_Call) RunAndReturn(run func(ctx context.Context, userID string, val int) error) *MockCache_SetLinkCounter_Call {
 	_c.Call.Return(run)
 	return _c
 }
